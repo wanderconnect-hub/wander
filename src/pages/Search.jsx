@@ -9,7 +9,8 @@ export default function Search() {
     currentUserEmail, 
     buddies, 
     notifications, 
-    setNotifications 
+    setNotifications,
+    calculateAge
   } = useContext(TravelContext);
   
   const navigate = useNavigate();
@@ -26,7 +27,9 @@ export default function Search() {
       style: "Adventure",
       bio: "Adventure enthusiast. Love trekking, skiing, and off-roading. Let's conquer the mountains!",
       nextTrip: "Manali, Himachal Pradesh (Oct 15 - 25)",
-      verified: true
+      verified: true,
+      age: 26,
+      gender: "Male"
     },
     {
       id: "priya-103",
@@ -37,7 +40,9 @@ export default function Search() {
       style: "Relaxation",
       bio: "Beach lover, foodie, and yoga practitioner. Let's find the best sunset spots!",
       nextTrip: "South Goa Beaches (Nov 05 - 12)",
-      verified: true
+      verified: true,
+      age: 27,
+      gender: "Female"
     },
     {
       id: "arjun-104",
@@ -48,7 +53,9 @@ export default function Search() {
       style: "Hiking",
       bio: "Road trip fanatic. I love long drives, local histories, and camping under the stars.",
       nextTrip: "Spiti Valley, Himachal (Sep 20 - 30)",
-      verified: false
+      verified: false,
+      age: 31,
+      gender: "Male"
     },
     {
       id: "vikram-106",
@@ -59,7 +66,9 @@ export default function Search() {
       style: "Adventure",
       bio: "Always looking for the next mountain to climb. Let's do a bike trip to Leh Ladakh!",
       nextTrip: "Leh, Ladakh (Aug 15 - 25)",
-      verified: true
+      verified: true,
+      age: 26,
+      gender: "Male"
     },
     {
       id: "neha-107",
@@ -70,7 +79,9 @@ export default function Search() {
       style: "Foodie & Culture",
       bio: "Planning a trip to Rajasthan to explore forts and eat amazing local food. Looking for a buddy!",
       nextTrip: "Jaipur, Rajasthan (Oct 10 - 15)",
-      verified: true
+      verified: true,
+      age: 24,
+      gender: "Female"
     },
     {
       id: "rahul-108",
@@ -81,7 +92,9 @@ export default function Search() {
       style: "Relaxation",
       bio: "Backpacker heading to Varkala for a month. Surf, chill, and repeat.",
       nextTrip: "Varkala, Kerala (Dec 01 - 31)",
-      verified: false
+      verified: false,
+      age: 28,
+      gender: "Male"
     }
   ];
 
@@ -91,11 +104,14 @@ export default function Search() {
   const mappedRegistered = (registeredUsers || []).map(u => {
     const existingMock = allSearchablePeopleStatic.find(p => p.email.toLowerCase() === u.email.toLowerCase());
     const id = existingMock?.id || `${u.name.toLowerCase().replace(/\s+/g, '-')}-${u.email.split('@')[0].slice(-3)}`;
+    const ageVal = u.profile?.dob ? calculateAge(u.profile.dob) : (u.profile?.age || existingMock?.age || 26);
     
     return {
       id,
       name: u.profile?.name || u.name,
       email: u.email,
+      age: ageVal,
+      gender: u.profile?.gender || existingMock?.gender || "Male",
       avatar: u.profile?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
       location: u.profile?.location || existingMock?.location || "Local Traveler",
       style: Array.isArray(u.profile?.styles) ? u.profile.styles.join(', ') : u.profile?.styles || existingMock?.style || 'Adventurer',
@@ -247,7 +263,12 @@ export default function Search() {
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
                     <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{person.name}</h3>
-                    <span style={{ fontSize: '0.75rem', background: 'var(--background)', color: 'var(--text-muted)', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-sm)', fontWeight: '600' }}>
+                    {person.age && person.gender && (
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                        ({person.age}, {person.gender})
+                      </span>
+                    )}
+                    <span style={{ fontSize: '0.75rem', background: 'var(--background)', color: 'var(--text-muted)', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-sm)', fontWeight: '600', marginLeft: 'auto' }}>
                       ID: {person.id}
                     </span>
                   </div>

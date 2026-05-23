@@ -3,7 +3,7 @@ import { Shield, Map, Star, Edit3, Settings, Users, X } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
 
 export default function Profile() {
-  const { buddies, userProfile, setUserProfile, currentUserEmail, setRegisteredUsers } = useContext(TravelContext);
+  const { buddies, userProfile, setUserProfile, currentUserEmail, setRegisteredUsers, calculateAge } = useContext(TravelContext);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState(userProfile);
 
@@ -44,8 +44,11 @@ export default function Profile() {
         
         <div style={{ flex: 1 }}>
           <h2 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{userProfile.name}</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '1rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '0.25rem' }}>
             {userProfile.title}
+          </p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '1rem' }}>
+            {userProfile.gender || 'Male'} • {userProfile.dob ? `${calculateAge(userProfile.dob)} years old` : '26 years old'}
           </p>
           
           <div className="trust-score">
@@ -178,6 +181,35 @@ export default function Profile() {
             <div className="form-group">
               <label className="form-label">Full Name</label>
               <input type="text" className="form-control" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} required />
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem' }} className="form-group">
+              <div style={{ flex: 1 }}>
+                <label className="form-label">Gender</label>
+                <select 
+                  className="form-control" 
+                  value={editForm.gender || 'Male'} 
+                  onChange={e => setEditForm({...editForm, gender: e.target.value})} 
+                  required
+                  style={{ background: 'var(--background)', color: 'var(--text-main)', border: '1px solid var(--border-color)', height: '42px' }}
+                >
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Non-binary">Non-binary</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label className="form-label">Date of Birth</label>
+                <input 
+                  type="date" 
+                  className="form-control" 
+                  value={editForm.dob || '1997-04-12'} 
+                  onChange={e => setEditForm({...editForm, dob: e.target.value})} 
+                  required
+                  style={{ background: 'var(--background)', color: 'var(--text-main)', border: '1px solid var(--border-color)', height: '42px', padding: '0.5rem' }}
+                />
+              </div>
             </div>
             
             <div className="form-group">

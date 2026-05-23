@@ -3,6 +3,18 @@ import { createContext, useState, useEffect } from 'react';
 
 export const TravelContext = createContext();
 
+export function calculateAge(dobString) {
+  if (!dobString) return null;
+  const today = new Date();
+  const birthDate = new Date(dobString);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+}
+
 export function TravelProvider({ children }) {
   // Preloaded registered users (supporting easy login for Rohan, Priya, Arjun, and Alex)
   const [registeredUsers, setRegisteredUsers] = useState(() => {
@@ -51,7 +63,9 @@ export function TravelProvider({ children }) {
           bio: "Hey! I'm Alex. I've been traveling full-time for the last 2 years. I love finding off-the-beaten-path locations, trying local street food, and hiking up to great viewpoints.",
           styles: ["Backpacking", "Photography", "Foodie", "Budget"],
           avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-          title: "Digital Nomad & Adventure Photographer"
+          title: "Digital Nomad & Adventure Photographer",
+          gender: "Male",
+          dob: "1997-04-12"
         }
       },
       {
@@ -64,7 +78,9 @@ export function TravelProvider({ children }) {
           bio: "Adventure enthusiast. Love trekking, skiing, and off-roading. Let's conquer the mountains!",
           styles: ["Adventure", "Hiking", "Photography"],
           avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80",
-          title: "Mountain Guide & Nomad"
+          title: "Mountain Guide & Nomad",
+          gender: "Male",
+          dob: "1999-08-23"
         }
       },
       {
@@ -77,7 +93,9 @@ export function TravelProvider({ children }) {
           bio: "Beach lover, foodie, and yoga practitioner. Let's find the best sunset spots!",
           styles: ["Relaxation", "Foodie", "Culture"],
           avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80",
-          title: "Beach Bum & Yoga Teacher"
+          title: "Beach Bum & Yoga Teacher",
+          gender: "Female",
+          dob: "1998-11-05"
         }
       },
       {
@@ -90,7 +108,9 @@ export function TravelProvider({ children }) {
           bio: "Road trip fanatic. I love long drives, local histories, and camping under the stars.",
           styles: ["Hiking", "Culture", "Adventure"],
           avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80",
-          title: "Roadtripper & Historian"
+          title: "Roadtripper & Historian",
+          gender: "Male",
+          dob: "1995-01-15"
         }
       }
     ];
@@ -112,7 +132,9 @@ export function TravelProvider({ children }) {
       bio: "Hey! I'm Alex. I've been traveling full-time for the last 2 years. I love finding off-the-beaten-path locations, trying local street food, and hiking up to great viewpoints. I'm generally pretty easy-going and love deep conversations over a coffee or beer. Looking for travel buddies who don't mind waking up early for sunrise shots!",
       styles: ["Backpacking", "Photography", "Foodie", "Budget"],
       avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-      title: "Digital Nomad & Adventure Photographer"
+      title: "Digital Nomad & Adventure Photographer",
+      gender: "Male",
+      dob: "1997-04-12"
     };
   });
 
@@ -377,7 +399,8 @@ export function TravelProvider({ children }) {
       setNotifications,
       chats,
       setChats,
-      connectTravelBuddies
+      connectTravelBuddies,
+      calculateAge
     }}>
       {children}
     </TravelContext.Provider>

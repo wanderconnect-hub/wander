@@ -5,12 +5,12 @@ import { TravelContext } from '../context.jsx';
 export default function Auth() {
   const { setIsAuthenticated, setUserProfile, registeredUsers, setRegisteredUsers, setCurrentUserEmail } = useContext(TravelContext);
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'register' | 'forgot'
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', gender: '', dob: '' });
   const [errorMsg, setErrorMsg] = useState('');
   
   const switchMode = (mode) => {
     setAuthMode(mode);
-    setFormData({ name: '', email: '', password: '' });
+    setFormData({ name: '', email: '', password: '', gender: '', dob: '' });
     setErrorMsg('');
   };
 
@@ -25,7 +25,7 @@ export default function Auth() {
     }
     
     if (authMode === 'register') {
-      if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim()) {
+      if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.gender || !formData.dob) {
         setErrorMsg('All fields are required.');
         return;
       }
@@ -45,7 +45,9 @@ export default function Auth() {
           bio: "Tell us about yourself! Click 'Edit Profile' to add your bio, tagline, and travel styles.",
           styles: ["Adventurer"],
           avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-          title: "New Traveler"
+          title: "New Traveler",
+          gender: formData.gender,
+          dob: formData.dob
         }
       };
       setRegisteredUsers(prev => [...prev, newUser]);
@@ -143,13 +145,46 @@ export default function Auth() {
 
           <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {authMode === 'register' && (
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Full Name</label>
-                <div style={{ position: 'relative' }}>
-                  <UserIcon size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input type="text" className="form-control" placeholder="John Doe" style={{ paddingLeft: '3rem' }} required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+              <>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Full Name</label>
+                  <div style={{ position: 'relative' }}>
+                    <UserIcon size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input type="text" className="form-control" placeholder="John Doe" style={{ paddingLeft: '3rem' }} required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                  </div>
                 </div>
-              </div>
+
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                    <label className="form-label">Gender</label>
+                    <select 
+                      className="form-control" 
+                      required 
+                      value={formData.gender} 
+                      onChange={e => setFormData({...formData, gender: e.target.value})}
+                      style={{ background: 'var(--background)', color: 'var(--text-main)', border: '1px solid var(--border-color)', height: '48px' }}
+                    >
+                      <option value="">Select</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Non-binary">Non-binary</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  
+                  <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                    <label className="form-label">Date of Birth</label>
+                    <input 
+                      type="date" 
+                      className="form-control" 
+                      required 
+                      value={formData.dob} 
+                      onChange={e => setFormData({...formData, dob: e.target.value})}
+                      style={{ background: 'var(--background)', color: 'var(--text-main)', border: '1px solid var(--border-color)', height: '48px', padding: '0.5rem' }}
+                    />
+                  </div>
+                </div>
+              </>
             )}
 
             <div className="form-group" style={{ marginBottom: 0 }}>

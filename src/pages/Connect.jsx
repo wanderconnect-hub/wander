@@ -8,6 +8,7 @@ const mockSuggestions = [
     name: "Vikram Singh",
     email: "vikram@wanderconnect.com",
     age: 26,
+    gender: "Male",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&w=400&q=80",
     location: "Delhi",
     style: "Adventure",
@@ -19,6 +20,7 @@ const mockSuggestions = [
     name: "Neha Patel",
     email: "neha@wanderconnect.com",
     age: 24,
+    gender: "Female",
     avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&w=400&q=80",
     location: "Ahmedabad",
     style: "Foodie & Culture",
@@ -30,6 +32,7 @@ const mockSuggestions = [
     name: "Rahul Nair",
     email: "rahul@wanderconnect.com",
     age: 28,
+    gender: "Male",
     avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&w=400&q=80",
     location: "Kochi",
     style: "Relaxation",
@@ -39,7 +42,7 @@ const mockSuggestions = [
 ];
 
 export default function Connect() {
-  const { setBuddies, setChats, currentUserEmail, buddies, userProfile, connectTravelBuddies, registeredUsers } = useContext(TravelContext);
+  const { setBuddies, setChats, currentUserEmail, buddies, userProfile, connectTravelBuddies, registeredUsers, calculateAge } = useContext(TravelContext);
   const [passedUserIds, setPassedUserIds] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matchAlert, setMatchAlert] = useState(null);
@@ -50,11 +53,13 @@ export default function Connect() {
   // Add registered users
   (registeredUsers || []).forEach((u, index) => {
     const prof = u.profile || {};
+    const ageVal = prof.dob ? calculateAge(prof.dob) : (prof.age || 26);
     allProfiles.push({
       id: u.id || `reg-${u.email}-${index}`,
       name: prof.name || u.name,
       email: u.email,
-      age: prof.age || 26,
+      age: ageVal,
+      gender: prof.gender || "Male",
       avatar: prof.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
       location: prof.location || "Delhi",
       style: prof.styles?.[0] || "Explorer",
@@ -197,7 +202,7 @@ export default function Connect() {
           padding: '2rem 1.5rem 1rem'
         }}>
           <h2 style={{ fontSize: '1.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {currentUser.name}, {currentUser.age}
+            {currentUser.name}, {currentUser.age} <span style={{ fontSize: '1.2rem', opacity: 0.8, color: 'var(--primary)' }}>({currentUser.gender})</span>
           </h2>
           <p style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
             <MapPin size={16} /> {currentUser.location}
