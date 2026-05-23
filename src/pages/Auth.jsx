@@ -36,6 +36,13 @@ export default function Auth() {
         return;
       }
 
+      const defaultAvatars = {
+        Male: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+        Female: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+        "Non-binary": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+        Other: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
+      };
+
       const newUser = {
         name: formData.name.trim(),
         email: formData.email.trim(),
@@ -44,7 +51,7 @@ export default function Auth() {
           name: formData.name.trim(),
           bio: "Tell us about yourself! Click 'Edit Profile' to add your bio, tagline, and travel styles.",
           styles: ["Adventurer"],
-          avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+          avatar: defaultAvatars[formData.gender] || defaultAvatars.Male,
           title: "New Traveler",
           gender: formData.gender,
           dob: formData.dob

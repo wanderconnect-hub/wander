@@ -189,7 +189,25 @@ export default function Profile() {
                 <select 
                   className="form-control" 
                   value={editForm.gender || 'Male'} 
-                  onChange={e => setEditForm({...editForm, gender: e.target.value})} 
+                  onChange={e => {
+                    const nextGender = e.target.value;
+                    const defaultAvatars = {
+                      Male: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+                      Female: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+                      "Non-binary": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+                      Other: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
+                    };
+                    const isUsingDefault = Object.values(defaultAvatars).includes(editForm.avatar);
+                    if (isUsingDefault) {
+                      setEditForm({
+                        ...editForm,
+                        gender: nextGender,
+                        avatar: defaultAvatars[nextGender] || defaultAvatars.Male
+                      });
+                    } else {
+                      setEditForm({ ...editForm, gender: nextGender });
+                    }
+                  }} 
                   required
                   style={{ background: 'var(--background)', color: 'var(--text-main)', border: '1px solid var(--border-color)', height: '42px' }}
                 >
