@@ -42,7 +42,7 @@ const mockSuggestions = [
 ];
 
 export default function Connect() {
-  const { setBuddies, setChats, currentUserEmail, buddies, userProfile, connectTravelBuddies, registeredUsers, calculateAge } = useContext(TravelContext);
+  const { setBuddies, setChats, currentUserEmail, buddies, userProfile, connectTravelBuddies, registeredUsers, calculateAge, loading } = useContext(TravelContext);
   const [passedUserIds, setPassedUserIds] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matchAlert, setMatchAlert] = useState(null);
@@ -143,6 +143,23 @@ export default function Connect() {
       return prev;
     });
   };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6rem 2rem' }}>
+        <div className="spinner" style={{
+          width: '50px',
+          height: '50px',
+          border: '5px solid var(--border-color)',
+          borderTop: '5px solid var(--primary)',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+          marginBottom: '1.5rem'
+        }}></div>
+        <p style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Finding travel buddies in your region...</p>
+      </div>
+    );
+  }
 
   if (suggestions.length === 0) {
     return (

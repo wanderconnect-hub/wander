@@ -183,16 +183,23 @@ export function TravelProvider({ children }) {
 
   // Shared Trips State (moved from Feed.jsx to make it global)
   const [trips, setTrips] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
 
     const fetchTripsAndProfiles = async () => {
       try {
-        // Fetch profiles
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('*');
+        if (active) setLoading(true);
+        
+        // Fetch profiles and trips in parallel
+        const [profilesRes, tripsRes] = await Promise.all([
+          supabase.from('profiles').select('*'),
+          supabase.from('trips').select('*, host:profiles(*)')
+        ]);
+
+        const { data: profilesData, error: profilesError } = profilesRes;
+        const { data: tripsData, error: tripsError } = tripsRes;
 
         if (profilesError) {
           console.error("Error fetching profiles:", profilesError);
@@ -284,11 +291,6 @@ export function TravelProvider({ children }) {
 
           setRegisteredUsers(combined);
         }
-
-        // Fetch trips
-        const { data: tripsData, error: tripsError } = await supabase
-          .from('trips')
-          .select('*, host:profiles(*)');
 
         if (tripsError) {
           console.error("Error fetching trips:", tripsError);
@@ -384,11 +386,15 @@ export function TravelProvider({ children }) {
         }
       } catch (err) {
         console.error("Failed fetching trips and profiles:", err);
+      } finally {
+        if (active) setLoading(false);
       }
     };
 
     if (isAuthenticated) {
       fetchTripsAndProfiles();
+    } else {
+      setLoading(false);
     }
 
     return () => {
@@ -535,6 +541,8 @@ export function TravelProvider({ children }) {
       setCurrentUserId,
       trips,
       setTrips,
+      loading,
+      setLoading,
       notifications,
       setNotifications,
       chats,

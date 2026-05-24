@@ -4,7 +4,7 @@ import { TravelContext } from '../context.jsx';
 import { supabase } from '../supabase';
 
 export default function Feed() {
-  const { userProfile, currentUserEmail, currentUserId, trips, setTrips, notifications, setNotifications, setBuddies, chats, setChats } = useContext(TravelContext);
+  const { userProfile, currentUserEmail, currentUserId, trips, setTrips, loading, notifications, setNotifications, setBuddies, chats, setChats } = useContext(TravelContext);
   const [activeFilter, setActiveFilter] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
@@ -211,7 +211,20 @@ export default function Feed() {
         ))}
       </div>
 
-      {filteredTrips.length === 0 ? (
+      {loading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6rem 2rem', background: 'var(--card-bg)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)' }}>
+          <div className="spinner" style={{
+            width: '50px',
+            height: '50px',
+            border: '5px solid var(--border-color)',
+            borderTop: '5px solid var(--primary)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            marginBottom: '1.5rem'
+          }}></div>
+          <p style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Discovering trips in your area...</p>
+        </div>
+      ) : filteredTrips.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'var(--card-bg)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)' }}>
           <h3 style={{ marginBottom: '0.5rem' }}>No trips in this category yet</h3>
           <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Be the first one to post a trip for {activeFilter}!</p>

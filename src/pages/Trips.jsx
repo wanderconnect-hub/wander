@@ -4,7 +4,7 @@ import { TravelContext } from '../context.jsx';
 import { supabase } from '../supabase';
 
 export default function Trips() {
-  const { trips, setTrips, notifications, currentUserEmail, userProfile, currentUserId } = useContext(TravelContext);
+  const { trips, setTrips, loading, notifications, currentUserEmail, userProfile, currentUserId } = useContext(TravelContext);
   const [activeTab, setActiveTab] = useState('upcoming');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
@@ -271,7 +271,20 @@ export default function Trips() {
       </div>
 
       {/* Content Rendering */}
-      {activeTab === 'upcoming' ? (
+      {loading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6rem 2rem', background: 'var(--card-bg)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)' }}>
+          <div className="spinner" style={{
+            width: '50px',
+            height: '50px',
+            border: '5px solid var(--border-color)',
+            borderTop: '5px solid var(--primary)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            marginBottom: '1.5rem'
+          }}></div>
+          <p style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Loading your trips...</p>
+        </div>
+      ) : activeTab === 'upcoming' ? (
         upcomingTrips.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '5rem 2rem', background: 'var(--card-bg)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)' }}>
             <Compass size={48} style={{ color: 'var(--primary)', marginBottom: '1.5rem', opacity: 0.6 }} />
