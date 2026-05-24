@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import { Compass, User, MessageCircle, Menu, Bell, Users, LogOut, Globe, X, Check, AlertCircle, Briefcase, Search as SearchIcon } from 'lucide-react';
 import Feed from './pages/Feed';
 import Profile from './pages/Profile';
@@ -423,37 +423,53 @@ function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
-  if (!isAuthenticated) {
-    return <Auth />;
-  }
-
   return (
     <Router>
-      <div className="app-container">
-        <Sidebar 
-          mobileOpen={mobileOpen} 
-          setMobileOpen={setMobileOpen} 
-          notifOpen={notifOpen} 
-          setNotifOpen={setNotifOpen} 
+      <Routes>
+        {/* Auth page route */}
+        <Route 
+          path="/auth" 
+          element={isAuthenticated ? <Navigate to="/" replace /> : <Auth />} 
         />
         
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<Feed />} />
-            <Route path="/trips" element={<Trips />} />
-            <Route path="/connect" element={<Connect />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/messages" element={<Messages />} />
-          </Routes>
-        </main>
+        {/* Protected routes */}
+        <Route 
+          path="/*" 
+          element={
+            isAuthenticated ? (
+              <div className="app-container">
+                <Sidebar 
+                  mobileOpen={mobileOpen} 
+                  setMobileOpen={setMobileOpen} 
+                  notifOpen={notifOpen} 
+                  setNotifOpen={setNotifOpen} 
+                />
+                
+                <main className="main-content">
+                  <Routes>
+                    <Route path="/" element={<Feed />} />
+                    <Route path="/trips" element={<Trips />} />
+                    <Route path="/connect" element={<Connect />} />
+                    <Route path="/search" element={<Search />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/messages" element={<Messages />} />
+                    {/* Fallback to home */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </main>
 
-        {/* Global Slide-over Notification Centre */}
-        <NotificationDrawer 
-          isOpen={notifOpen} 
-          onClose={() => setNotifOpen(false)} 
+                {/* Global Slide-over Notification Centre */}
+                <NotificationDrawer 
+                  isOpen={notifOpen} 
+                  onClose={() => setNotifOpen(false)} 
+                />
+              </div>
+            ) : (
+              <Navigate to="/auth" replace />
+            )
+          } 
         />
-      </div>
+      </Routes>
     </Router>
   );
 }
