@@ -42,7 +42,7 @@ const mockSuggestions = [
 ];
 
 export default function Connect() {
-  const { setBuddies, setChats, currentUserEmail, buddies, userProfile, connectTravelBuddies, registeredUsers, calculateAge, loading } = useContext(TravelContext);
+  const { setBuddies, setChats, currentUserEmail, buddies, userProfile, connectTravelBuddies, registeredUsers, calculateAge, loading, createSupabaseChat } = useContext(TravelContext);
   const [passedUserIds, setPassedUserIds] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matchAlert, setMatchAlert] = useState(null);
@@ -86,7 +86,7 @@ export default function Connect() {
     if (action === 'accept') {
       // Add as travel buddies to BOTH users
       connectTravelBuddies(currentUserEmail, user.email, {
-        id: Date.now(),
+        id: currentUserId,
         name: userProfile.name,
         avatar: userProfile.avatar,
         location: userProfile.location || "Traveler",
@@ -100,29 +100,33 @@ export default function Connect() {
       });
 
       // Create new chat thread
-      const welcomeMsg = {
-        id: Date.now(),
-        senderEmail: user.email,
-        text: `Hey! We matched on WanderConnect. Let's travel together!`
-      };
-
-      setChats(prev => {
-        const exists = prev.some(c => 
-          c.participants.includes(currentUserEmail) && c.participants.includes(user.email)
-        );
-        if (exists) return prev;
-        
-        return [{
+      if (user.id && typeof user.id === 'string' && user.id.length > 20) {
+        createSupabaseChat(user.id, `Hey! We matched on WanderConnect. Let's travel together!`);
+      } else {
+        const welcomeMsg = {
           id: Date.now(),
-          participants: [currentUserEmail, user.email],
-          name: user.name,
-          avatar: user.avatar,
-          time: "Just now",
-          unread: 1,
-          active: false,
-          messages: [welcomeMsg]
-        }, ...prev];
-      });
+          senderEmail: user.email,
+          text: `Hey! We matched on WanderConnect. Let's travel together!`
+        };
+
+        setChats(prev => {
+          const exists = prev.some(c => 
+            c.participants.includes(currentUserEmail) && c.participants.includes(user.email)
+          );
+          if (exists) return prev;
+          
+          return [{
+            id: Date.now(),
+            participants: [currentUserEmail, user.email],
+            name: user.name,
+            avatar: user.avatar,
+            time: "Just now",
+            unread: 1,
+            active: false,
+            messages: [welcomeMsg]
+          }, ...prev];
+        });
+      }
       
       // Show Match Alert
       setMatchAlert(user);

@@ -11,7 +11,7 @@ import Auth from './pages/Auth';
 import { TravelContext } from './context.jsx';
 
 function NotificationDrawer({ isOpen, onClose }) {
-  const { notifications, setNotifications, setBuddies, setChats, currentUserEmail, userProfile, setRegisteredUsers, connectTravelBuddies } = React.useContext(TravelContext);
+  const { notifications, setNotifications, setBuddies, setChats, currentUserEmail, userProfile, setRegisteredUsers, connectTravelBuddies, createSupabaseChat, registeredUsers, currentUserId } = React.useContext(TravelContext);
 
   const visibleNotifications = notifications.filter(n => n.receiverEmail === currentUserEmail);
 
@@ -40,7 +40,7 @@ function NotificationDrawer({ isOpen, onClose }) {
 
       // Add as travel buddies to BOTH users
       connectTravelBuddies(currentUserEmail, notif.sender.email, {
-        id: Date.now(),
+        id: currentUserId,
         name: userProfile.name,
         avatar: userProfile.avatar,
         location: userProfile.location || "Traveler",
@@ -54,37 +54,42 @@ function NotificationDrawer({ isOpen, onClose }) {
       });
 
       // Create new chat thread
-      setChats(prev => {
-        const chatIndex = prev.findIndex(c => 
-          c.participants.includes(currentUserEmail) && c.participants.includes(notif.sender.email)
-        );
+      const matchUser = registeredUsers.find(u => u.email.toLowerCase() === notif.sender.email.toLowerCase());
+      if (matchUser?.id && typeof matchUser.id === 'string' && matchUser.id.length > 20) {
+        createSupabaseChat(matchUser.id, `Hey! I accepted your connection request. Let's travel together!`);
+      } else {
+        setChats(prev => {
+          const chatIndex = prev.findIndex(c => 
+            c.participants.includes(currentUserEmail) && c.participants.includes(notif.sender.email)
+          );
 
-        const welcomeMsg = {
-          id: Date.now(),
-          senderEmail: currentUserEmail, // Sent by me (acceptor)
-          text: `Hey! I accepted your connection request. Let's travel together!`
-        };
-
-        if (chatIndex !== -1) {
-          return prev.map((c, idx) => idx === chatIndex ? {
-            ...c,
-            time: "Just now",
-            unread: c.unread + 1,
-            messages: [...c.messages, welcomeMsg]
-          } : c);
-        } else {
-          return [{
+          const welcomeMsg = {
             id: Date.now(),
-            participants: [currentUserEmail, notif.sender.email],
-            name: notif.sender.name,
-            avatar: notif.sender.avatar,
-            time: "Just now",
-            unread: 1,
-            active: false,
-            messages: [welcomeMsg]
-          }, ...prev];
-        }
-      });
+            senderEmail: currentUserEmail, // Sent by me (acceptor)
+            text: `Hey! I accepted your connection request. Let's travel together!`
+          };
+
+          if (chatIndex !== -1) {
+            return prev.map((c, idx) => idx === chatIndex ? {
+              ...c,
+              time: "Just now",
+              unread: c.unread + 1,
+              messages: [...c.messages, welcomeMsg]
+            } : c);
+          } else {
+            return [{
+              id: Date.now(),
+              participants: [currentUserEmail, notif.sender.email],
+              name: notif.sender.name,
+              avatar: notif.sender.avatar,
+              time: "Just now",
+              unread: 1,
+              active: false,
+              messages: [welcomeMsg]
+            }, ...prev];
+          }
+        });
+      }
       return;
     }
 
@@ -113,7 +118,7 @@ function NotificationDrawer({ isOpen, onClose }) {
 
     // 3. Add as travel buddies to BOTH users
     connectTravelBuddies(currentUserEmail, notif.sender.email, {
-      id: Date.now(),
+      id: currentUserId,
       name: userProfile.name,
       avatar: userProfile.avatar,
       location: userProfile.location || "Traveler",
@@ -127,37 +132,42 @@ function NotificationDrawer({ isOpen, onClose }) {
     });
 
     // 4. Create or append message thread using the new participants schema
-    setChats(prev => {
-      const chatIndex = prev.findIndex(c => 
-        c.participants.includes(currentUserEmail) && c.participants.includes(notif.sender.email)
-      );
+    const matchUser = registeredUsers.find(u => u.email.toLowerCase() === notif.sender.email.toLowerCase());
+    if (matchUser?.id && typeof matchUser.id === 'string' && matchUser.id.length > 20) {
+      createSupabaseChat(matchUser.id, `Hey! Thanks for accepting my request to join your trip to ${notif.trip.destination}. Let's coordinate details here.`);
+    } else {
+      setChats(prev => {
+        const chatIndex = prev.findIndex(c => 
+          c.participants.includes(currentUserEmail) && c.participants.includes(notif.sender.email)
+        );
 
-      const welcomeMsg = {
-        id: Date.now(),
-        senderEmail: notif.sender.email, // Sent by the person who requested (Alex Chen / Neha Patel, etc.)
-        text: `Hey! Thanks for accepting my request to join your trip to ${notif.trip.destination}. Let's coordinate details here.`
-      };
-
-      if (chatIndex !== -1) {
-        return prev.map((c, idx) => idx === chatIndex ? {
-          ...c,
-          time: "Just now",
-          unread: c.unread + 1,
-          messages: [...c.messages, welcomeMsg]
-        } : c);
-      } else {
-        return [{
+        const welcomeMsg = {
           id: Date.now(),
-          participants: [currentUserEmail, notif.sender.email],
-          name: notif.sender.name,
-          avatar: notif.sender.avatar,
-          time: "Just now",
-          unread: 1,
-          active: false,
-          messages: [welcomeMsg]
-        }, ...prev];
-      }
-    });
+          senderEmail: notif.sender.email, // Sent by the person who requested (Alex Chen / Neha Patel, etc.)
+          text: `Hey! Thanks for accepting my request to join your trip to ${notif.trip.destination}. Let's coordinate details here.`
+        };
+
+        if (chatIndex !== -1) {
+          return prev.map((c, idx) => idx === chatIndex ? {
+            ...c,
+            time: "Just now",
+            unread: c.unread + 1,
+            messages: [...c.messages, welcomeMsg]
+          } : c);
+        } else {
+          return [{
+            id: Date.now(),
+            participants: [currentUserEmail, notif.sender.email],
+            name: notif.sender.name,
+            avatar: notif.sender.avatar,
+            time: "Just now",
+            unread: 1,
+            active: false,
+            messages: [welcomeMsg]
+          }, ...prev];
+        }
+      });
+    }
   };
 
   const handleDecline = (notif) => {

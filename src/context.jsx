@@ -192,32 +192,51 @@ export function TravelProvider({ children }) {
       try {
         if (active) setLoading(true);
         
-        // Fetch profiles and trips in parallel
-        const [profilesRes, tripsRes] = await Promise.all([
+        // Fetch profiles, trips, and buddies in parallel
+        const [profilesRes, tripsRes, buddiesRes] = await Promise.all([
           supabase.from('profiles').select('*'),
-          supabase.from('trips').select('*, host:profiles(*)')
+          supabase.from('trips').select('*, host:profiles(*)'),
+          supabase.from('buddies').select('*')
         ]);
 
         const { data: profilesData, error: profilesError } = profilesRes;
         const { data: tripsData, error: tripsError } = tripsRes;
+        const { data: buddiesData } = buddiesRes;
 
         if (profilesError) {
           console.error("Error fetching profiles:", profilesError);
         } else if (profilesData && active) {
-          const mappedUsers = profilesData.map(p => ({
-            id: p.id,
-            name: p.name,
-            email: p.email || (currentUserId && p.id === currentUserId ? currentUserEmail : `${p.name.toLowerCase().replace(/\s+/g, '')}@wanderconnect.com`),
-            profile: {
+          const mappedUsers = profilesData.map(p => {
+            // Find connections where p.id is either user_id_1 or user_id_2
+            const userBuddiesRelations = buddiesData ? buddiesData.filter(b => b.user_id_1 === p.id || b.user_id_2 === p.id) : [];
+            const userBuddies = userBuddiesRelations.map(rel => {
+              const otherId = rel.user_id_1 === p.id ? rel.user_id_2 : rel.user_id_1;
+              const otherProfile = profilesData.find(op => op.id === otherId);
+              return {
+                id: otherId,
+                name: otherProfile?.name || "Traveler",
+                avatar: otherProfile?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+                location: otherProfile?.location || "Delhi",
+                style: otherProfile?.styles?.[0] || "Explorer"
+              };
+            });
+
+            return {
+              id: p.id,
               name: p.name,
-              bio: p.bio || "Tell us about yourself! Click 'Edit Profile' to add your bio, tagline, and travel styles.",
-              styles: p.styles || ["Adventurer"],
-              avatar: p.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-              title: p.title || "Traveler",
-              gender: p.gender || "Male",
-              dob: p.dob
-            }
-          }));
+              email: p.email || (currentUserId && p.id === currentUserId ? currentUserEmail : `${p.name.toLowerCase().replace(/\s+/g, '')}@wanderconnect.com`),
+              buddies: userBuddies,
+              profile: {
+                name: p.name,
+                bio: p.bio || "Tell us about yourself! Click 'Edit Profile' to add your bio, tagline, and travel styles.",
+                styles: p.styles || ["Adventurer"],
+                avatar: p.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+                title: p.title || "Traveler",
+                gender: p.gender || "Male",
+                dob: p.dob
+              }
+            };
+          });
 
           const defaultUsers = [
             {
@@ -482,7 +501,198 @@ export function TravelProvider({ children }) {
     localStorage.setItem('wc_chats', JSON.stringify(chats));
   }, [chats]);
 
+  const fetchChatsAndMessages = async () => {
+    if (!isAuthenticated || !currentUserId) return;
+    try {
+      // Get all chat IDs the current user is part of
+      const { data: myPartLinks, error: pError } = await supabase
+        .from('chat_participants')
+        .select('chat_id')
+        .eq('user_id', currentUserId);
+
+      if (pError || !myPartLinks || myPartLinks.length === 0) {
+        return; // Fall back to mock chats if no DB chats exist yet
+      }
+
+      const chatIds = myPartLinks.map(link => link.chat_id);
+
+      // Get all participants of these chats (including user profile details)
+      const { data: allParts, error: partsError } = await supabase
+        .from('chat_participants')
+        .select('chat_id, user_id, profiles:profiles(*)')
+        .in('chat_id', chatIds);
+
+      // Get all messages for these chats
+      const { data: allMessages, error: msgsError } = await supabase
+        .from('messages')
+        .select('*')
+        .in('chat_id', chatIds)
+        .order('created_at', { ascending: true });
+
+      if (partsError || msgsError) {
+        console.error("Error loading chat details:", partsError || msgsError);
+        return;
+      }
+
+      // Map into the format expected by the frontend
+      const formattedChats = chatIds.map(chatId => {
+        const chatParticipants = allParts.filter(p => p.chat_id === chatId);
+        const chatMsgs = allMessages.filter(m => m.chat_id === chatId);
+        
+        const otherPart = chatParticipants.find(p => p.user_id !== currentUserId);
+        const latestMsg = chatMsgs[chatMsgs.length - 1];
+
+        // Format timestamp
+        let timeStr = "Just now";
+        if (latestMsg) {
+          const date = new Date(latestMsg.created_at);
+          timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        return {
+          id: chatId,
+          participants: chatParticipants.map(p => p.profiles?.email || p.user_id),
+          name: otherPart?.profiles?.name || "Travel Buddy",
+          avatar: otherPart?.profiles?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+          time: timeStr,
+          unread: 0,
+          active: false,
+          messages: chatMsgs.map(m => {
+            const senderEmail = chatParticipants.find(p => p.user_id === m.sender_id)?.profiles?.email || "";
+            return {
+              id: m.id,
+              senderEmail: senderEmail,
+              text: m.text
+            };
+          })
+        };
+      });
+
+      // Filter out mock chats that might conflict or just merge
+      setChats(prev => {
+        const mockChats = prev.filter(c => typeof c.id === 'number');
+        const dbChats = formattedChats;
+        // Keep mock chats only if they are not already matched by email in DB chats
+        const filteredMockChats = mockChats.filter(mc => 
+          !dbChats.some(dc => dc.participants.some(p => mc.participants.includes(p)))
+        );
+        return [...dbChats, ...filteredMockChats];
+      });
+    } catch (err) {
+      console.error("Exception fetching chats:", err);
+    }
+  };
+
+  const createSupabaseChat = async (otherUserId, welcomeText) => {
+    if (!currentUserId || !otherUserId) return;
+    try {
+      // 1. Check if chat already exists
+      const { data: myChats } = await supabase
+        .from('chat_participants')
+        .select('chat_id')
+        .eq('user_id', currentUserId);
+
+      if (myChats && myChats.length > 0) {
+        const chatIds = myChats.map(c => c.chat_id);
+        
+        const { data: matchingChats } = await supabase
+          .from('chat_participants')
+          .select('chat_id')
+          .eq('user_id', otherUserId)
+          .in('chat_id', chatIds);
+
+        if (matchingChats && matchingChats.length > 0) {
+          const existingChatId = matchingChats[0].chat_id;
+          await supabase
+            .from('messages')
+            .insert({
+              chat_id: existingChatId,
+              sender_id: currentUserId,
+              text: welcomeText
+            });
+          fetchChatsAndMessages();
+          return;
+        }
+      }
+
+      // 2. Create new chat room
+      const { data: newChat, error: chatError } = await supabase
+        .from('chats')
+        .insert({})
+        .select('id')
+        .single();
+
+      if (chatError || !newChat) {
+        console.error("Error creating chat room:", chatError);
+        return;
+      }
+
+      const chatId = newChat.id;
+
+      // 3. Add participants
+      await supabase
+        .from('chat_participants')
+        .insert([
+          { chat_id: chatId, user_id: currentUserId },
+          { chat_id: chatId, user_id: otherUserId }
+        ]);
+
+      // 4. Send welcome message
+      await supabase
+        .from('messages')
+        .insert({
+          chat_id: chatId,
+          sender_id: currentUserId,
+          text: welcomeText
+        });
+
+      fetchChatsAndMessages();
+    } catch (err) {
+      console.error("Exception creating chat:", err);
+    }
+  };
+
+  // Sync Supabase chats on authentication
+  useEffect(() => {
+    if (isAuthenticated && currentUserId) {
+      fetchChatsAndMessages();
+
+      // Subscribe to real-time messages changes to receive updates instantly
+      const channel = supabase
+        .channel('realtime-messages-room')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
+          fetchChatsAndMessages();
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [isAuthenticated, currentUserId]);
+
   const connectTravelBuddies = (emailA, emailB, detailsA, detailsB) => {
+    const isAValidUuid = detailsA.id && typeof detailsA.id === 'string' && detailsA.id.length > 20;
+    const isBValidUuid = detailsB.id && typeof detailsB.id === 'string' && detailsB.id.length > 20;
+
+    if (isAValidUuid && isBValidUuid) {
+      const id1 = detailsA.id < detailsB.id ? detailsA.id : detailsB.id;
+      const id2 = detailsA.id < detailsB.id ? detailsB.id : detailsA.id;
+      
+      supabase
+        .from('buddies')
+        .insert({
+          user_id_1: id1,
+          user_id_2: id2,
+          status: 'accepted'
+        })
+        .then(({ error }) => {
+          if (error && error.code !== '23505') {
+            console.error("Error inserting buddy connection to Supabase:", error);
+          }
+        });
+    }
+
     setRegisteredUsers(prev => {
       const updated = prev.map(u => {
         // Add B to A's buddies
@@ -548,7 +758,8 @@ export function TravelProvider({ children }) {
       chats,
       setChats,
       connectTravelBuddies,
-      calculateAge
+      calculateAge,
+      createSupabaseChat
     }}>
       {children}
     </TravelContext.Provider>

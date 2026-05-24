@@ -1,9 +1,10 @@
 import { useState, useContext, useEffect, useRef } from 'react';
 import { Search, Send, MoreVertical, Phone, Video } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
+import { supabase } from '../supabase';
 
 export default function Messages() {
-  const { chats, setChats, currentUserEmail, registeredUsers } = useContext(TravelContext);
+  const { chats, setChats, currentUserEmail, registeredUsers, currentUserId } = useContext(TravelContext);
   const messagesEndRef = useRef(null);
   
   // Resolve participant details dynamically based on the active user profile
@@ -49,18 +50,37 @@ export default function Messages() {
     ));
   };
 
-  const handleSend = () => {
-    if (!message.trim()) return;
+  const handleSend = async () => {
+    if (!message.trim() || !activeChat) return;
     
-    setChats(chats.map(chat => {
-      if (chat.id === activeChat) {
-        return {
-          ...chat,
-          messages: [...chat.messages, { id: Date.now(), senderEmail: currentUserEmail, text: message }]
-        };
+    const isSupabaseChat = typeof activeChat === 'string' && activeChat.includes('-');
+    
+    if (isSupabaseChat) {
+      try {
+        const { error } = await supabase
+          .from('messages')
+          .insert({
+            chat_id: activeChat,
+            sender_id: currentUserId,
+            text: message
+          });
+        if (error) {
+          console.error("Error sending message to Supabase:", error.message);
+        }
+      } catch (err) {
+        console.error("Send message exception:", err);
       }
-      return chat;
-    }));
+    } else {
+      setChats(chats.map(chat => {
+        if (chat.id === activeChat) {
+          return {
+            ...chat,
+            messages: [...chat.messages, { id: Date.now(), senderEmail: currentUserEmail, text: message }]
+          };
+        }
+        return chat;
+      }));
+    }
     setMessage('');
   };
 

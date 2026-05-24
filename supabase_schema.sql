@@ -154,7 +154,7 @@ CREATE POLICY "Users can view chats they are in"
 ON public.chat_participants FOR SELECT USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can join/add participants" 
-ON public.chat_participants FOR INSERT WITH CHECK (auth.uid() = user_id);
+ON public.chat_participants FOR INSERT WITH CHECK (true);
 
 -- Access chats policy linked to participants
 CREATE POLICY "Allow members of chat to read chat info" 
