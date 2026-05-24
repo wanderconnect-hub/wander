@@ -7,6 +7,7 @@
 CREATE TABLE public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
+    email TEXT,
     title TEXT DEFAULT 'New Traveler',
     bio TEXT DEFAULT 'Tell us about yourself! Click Edit Profile to add your bio, tagline, and travel styles.',
     avatar TEXT DEFAULT 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80',
@@ -32,10 +33,11 @@ ON public.profiles FOR UPDATE USING (auth.uid() = id);
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO public.profiles (id, name, avatar, gender, dob)
+    INSERT INTO public.profiles (id, name, email, avatar, gender, dob)
     VALUES (
         new.id,
         COALESCE(new.raw_user_meta_data->>'name', 'New Traveler'),
+        new.email,
         COALESCE(
             CASE 
                 WHEN new.raw_user_meta_data->>'gender' = 'Female' THEN 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80'

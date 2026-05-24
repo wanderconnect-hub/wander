@@ -1,15 +1,34 @@
 import { useContext, useState } from 'react';
 import { Shield, Map, Star, Edit3, Settings, Users, X } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
+import { supabase } from '../supabase';
 
 export default function Profile() {
   const { buddies, userProfile, setUserProfile, currentUserEmail, setRegisteredUsers, calculateAge } = useContext(TravelContext);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState(userProfile);
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     setUserProfile(editForm);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('profiles').upsert({
+          id: user.id,
+          name: editForm.name,
+          title: editForm.title,
+          bio: editForm.bio,
+          avatar: editForm.avatar,
+          styles: editForm.styles || [],
+          gender: editForm.gender,
+          dob: editForm.dob
+        });
+      }
+    } catch (err) {
+      console.error("Failed to sync profile update to Supabase:", err);
+    }
     
     // Also update the registered database so changes persist across logout/login
     if (currentUserEmail) {

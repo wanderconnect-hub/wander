@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect } from 'react';
+import { supabase } from './supabase';
 
 export const TravelContext = createContext();
 
@@ -117,8 +118,122 @@ export function TravelProvider({ children }) {
   });
 
   useEffect(() => {
-    localStorage.setItem('wc_registeredUsers', JSON.stringify(registeredUsers));
-  }, [registeredUsers]);
+    let active = true;
+
+    const fetchProfiles = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*');
+
+        if (error) {
+          console.error("Error fetching profiles from Supabase:", error);
+          return;
+        }
+
+        if (data && active) {
+          // Map Supabase profiles to the expected structure in registeredUsers
+          const mappedUsers = data.map(p => ({
+            id: p.id,
+            name: p.name,
+            email: p.email || `${p.name.toLowerCase().replace(/\s+/g, '')}@wanderconnect.com`,
+            profile: {
+              name: p.name,
+              bio: p.bio || "Tell us about yourself! Click 'Edit Profile' to add your bio, tagline, and travel styles.",
+              styles: p.styles || ["Adventurer"],
+              avatar: p.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+              title: p.title || "Traveler",
+              gender: p.gender || "Male",
+              dob: p.dob
+            }
+          }));
+
+          // Keep mock profiles if they don't exist in Supabase yet
+          const defaultUsers = [
+            {
+              name: "Alex Chen",
+              email: "alex@wanderconnect.com",
+              password: "password123",
+              buddies: [],
+              profile: {
+                name: "Alex Chen",
+                bio: "Hey! I'm Alex. I've been traveling full-time for the last 2 years. I love finding off-the-beaten-path locations, trying local street food, and hiking up to great viewpoints.",
+                styles: ["Backpacking", "Photography", "Foodie", "Budget"],
+                avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+                title: "Digital Nomad & Adventure Photographer",
+                gender: "Male",
+                dob: "1997-04-12"
+              }
+            },
+            {
+              name: "Rohan Sharma",
+              email: "rohan@wanderconnect.com",
+              password: "password123",
+              buddies: [],
+              profile: {
+                name: "Rohan Sharma",
+                bio: "Adventure enthusiast. Love trekking, skiing, and off-roading. Let's conquer the mountains!",
+                styles: ["Adventure", "Hiking", "Photography"],
+                avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80",
+                title: "Mountain Guide & Nomad",
+                gender: "Male",
+                dob: "1999-08-23"
+              }
+            },
+            {
+              name: "Priya Desai",
+              email: "priya@wanderconnect.com",
+              password: "password123",
+              buddies: [],
+              profile: {
+                name: "Priya Desai",
+                bio: "Beach lover, foodie, and yoga practitioner. Let's find the best sunset spots!",
+                styles: ["Relaxation", "Foodie", "Culture"],
+                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80",
+                title: "Beach Bum & Yoga Teacher",
+                gender: "Female",
+                dob: "1998-11-05"
+              }
+            },
+            {
+              name: "Arjun Verma",
+              email: "arjun@wanderconnect.com",
+              password: "password123",
+              buddies: [],
+              profile: {
+                name: "Arjun Verma",
+                bio: "Road trip fanatic. I love long drives, local histories, and camping under the stars.",
+                styles: ["Hiking", "Culture", "Adventure"],
+                avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80",
+                title: "Roadtripper & Historian",
+                gender: "Male",
+                dob: "1995-01-15"
+              }
+            }
+          ];
+
+          const combined = [...mappedUsers];
+          defaultUsers.forEach(du => {
+            if (!combined.some(c => c.email.toLowerCase() === du.email.toLowerCase())) {
+              combined.push(du);
+            }
+          });
+
+          setRegisteredUsers(combined);
+        }
+      } catch (err) {
+        console.error("Failed fetching profiles:", err);
+      }
+    };
+
+    if (isAuthenticated) {
+      fetchProfiles();
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated]);
 
 
 

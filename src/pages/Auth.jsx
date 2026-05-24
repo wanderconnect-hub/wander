@@ -73,6 +73,7 @@ export default function Auth() {
       try {
         await supabase.from('profiles').upsert({
           id: data.user.id,
+          email: data.user.email,
           ...userProfileData
         });
       } catch (err) {
