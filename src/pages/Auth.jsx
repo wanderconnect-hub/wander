@@ -1,9 +1,10 @@
 import { useState, useContext } from 'react';
 import { Mail, Lock, User as UserIcon, Globe } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
+import { supabase } from '../supabase';
 
 export default function Auth() {
-  const { setIsAuthenticated, setUserProfile, registeredUsers, setRegisteredUsers, setCurrentUserEmail } = useContext(TravelContext);
+  const { setIsAuthenticated, setUserProfile, setCurrentUserEmail } = useContext(TravelContext);
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'register' | 'forgot'
   const [formData, setFormData] = useState({ name: '', email: '', password: '', gender: '', dob: '' });
   const [errorMsg, setErrorMsg] = useState('');
@@ -14,13 +15,18 @@ export default function Auth() {
     setErrorMsg('');
   };
 
-  const handleAuth = (e) => {
+  const handleAuth = async (e) => {
     e.preventDefault();
     setErrorMsg('');
 
     if (authMode === 'forgot') {
-      alert("Password reset link sent to your email!");
-      switchMode('login');
+      const { error } = await supabase.auth.resetPasswordForEmail(formData.email.trim());
+      if (error) {
+        setErrorMsg(error.message);
+      } else {
+        alert("Password reset link sent to your email!");
+        switchMode('login');
+      }
       return;
     }
 
@@ -30,9 +36,20 @@ export default function Auth() {
         return;
       }
 
-      const userExists = registeredUsers.some(u => u.email.toLowerCase() === formData.email.toLowerCase());
-      if (userExists) {
-        setErrorMsg('An account with this email already exists!');
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email.trim(),
+        password: formData.password,
+        options: {
+          data: {
+            name: formData.name.trim(),
+            gender: formData.gender,
+            dob: formData.dob
+          }
+        }
+      });
+
+      if (error) {
+        setErrorMsg(error.message);
         return;
       }
 
@@ -43,36 +60,72 @@ export default function Auth() {
         Other: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
       };
 
-      const newUser = {
+      const userProfileData = {
         name: formData.name.trim(),
-        email: formData.email.trim(),
-        password: formData.password,
-        profile: {
-          name: formData.name.trim(),
-          bio: "Tell us about yourself! Click 'Edit Profile' to add your bio, tagline, and travel styles.",
-          styles: ["Adventurer"],
-          avatar: defaultAvatars[formData.gender] || defaultAvatars.Male,
-          title: "New Traveler",
-          gender: formData.gender,
-          dob: formData.dob
-        }
+        bio: "Tell us about yourself! Click 'Edit Profile' to add your bio, tagline, and travel styles.",
+        styles: ["Adventurer"],
+        avatar: defaultAvatars[formData.gender] || defaultAvatars.Male,
+        title: "New Traveler",
+        gender: formData.gender,
+        dob: formData.dob
       };
-      setRegisteredUsers(prev => [...prev, newUser]);
-      setUserProfile(newUser.profile);
-      setCurrentUserEmail(newUser.email);
+
+      try {
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          ...userProfileData
+        });
+      } catch (err) {
+        console.error("Profile upsert failed (handled by DB trigger):", err);
+      }
+
+      setUserProfile(userProfileData);
+      setCurrentUserEmail(data.user.email);
       setIsAuthenticated(true);
     } else if (authMode === 'login') {
-      const user = registeredUsers.find(
-        u => u.email.toLowerCase() === formData.email.toLowerCase() && u.password === formData.password
-      );
-
-      if (user) {
-        setUserProfile(user.profile);
-        setCurrentUserEmail(user.email);
-        setIsAuthenticated(true);
-      } else {
-        setErrorMsg('Invalid email or password. If you don\'t have an account, please Register first!');
+      if (!formData.email.trim() || !formData.password.trim()) {
+        setErrorMsg('Email and password are required.');
+        return;
       }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email.trim(),
+        password: formData.password
+      });
+
+      if (error) {
+        setErrorMsg(error.message);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profile) {
+        setUserProfile({
+          name: profile.name,
+          bio: profile.bio || "Tell us about yourself!",
+          styles: profile.styles || [],
+          avatar: profile.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+          title: profile.title || "Traveler",
+          gender: profile.gender,
+          dob: profile.dob
+        });
+      } else {
+        setUserProfile({
+          name: data.user.email,
+          bio: "Tell us about yourself!",
+          styles: ["Adventurer"],
+          avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+          title: "Traveler"
+        });
+      }
+
+      setCurrentUserEmail(data.user.email);
+      setIsAuthenticated(true);
     }
   };
 
