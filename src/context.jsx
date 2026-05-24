@@ -302,6 +302,7 @@ export function TravelProvider({ children }) {
             category: t.category,
             image: t.image,
             host: {
+              id: t.host?.id || t.host_id,
               name: t.host?.name || "Traveler",
               email: t.host?.email || "",
               avatar: t.host?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",

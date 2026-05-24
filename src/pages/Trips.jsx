@@ -138,18 +138,81 @@ export default function Trips() {
     }
   ];
 
-  // Dynamic Upcoming Trips (Trips hosted by the user, OR trips they requested to join and were accepted)
-  const upcomingTrips = trips.filter(trip => {
-    // 1. If hosted by you
+  // Helper to parse dates from the trip's date string and return the end date
+  const getTripEndDate = (dateStr) => {
+    if (!dateStr) return new Date();
+    
+    // Check if there is a range separated by "-"
+    const parts = dateStr.split('-');
+    const endPart = parts[parts.length - 1].trim();
+    
+    // Check if the end date has a year
+    const yearMatch = endPart.match(/\b\d{4}\b/);
+    let year = yearMatch ? parseInt(yearMatch[0], 10) : new Date().getFullYear();
+    
+    // Remove the year and comma if present to parse month and day
+    let cleanDateStr = endPart.replace(/,?\s*\b\d{4}\b/, '').trim();
+    
+    const parsed = new Date(`${cleanDateStr} ${year}`);
+    if (!isNaN(parsed.getTime())) {
+      parsed.setHours(23, 59, 59, 999); // end of day
+      return parsed;
+    }
+    
+    return new Date();
+  };
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Filter trips that the user is involved in (hosted OR accepted companion)
+  const myTrips = trips.filter(trip => {
     const isOwnTrip = (trip.host?.id && trip.host?.id === currentUserId) || (trip.host?.email && trip.host?.email.toLowerCase() === currentUserEmail.toLowerCase());
     if (isOwnTrip) return true;
 
-    // 2. If requested to join and accepted by the host
     const requestStatus = notifications.find(
       n => n.type === 'join_request' && n.sender?.email === currentUserEmail && n.trip?.id === trip.id
     )?.status;
 
     return requestStatus === 'accepted';
+  });
+
+  // Dynamically divide into upcoming and past trips based on date comparison
+  const upcomingTrips = myTrips.filter(trip => getTripEndDate(trip.date) >= today);
+  const pastTrips = myTrips.filter(trip => getTripEndDate(trip.date) < today);
+
+  // Map dynamic past trips to standard completed format with buddies
+  const dynamicPastTrips = pastTrips.map(trip => {
+    const isOwnTrip = (trip.host?.id && trip.host?.id === currentUserId) || (trip.host?.email && trip.host?.email.toLowerCase() === currentUserEmail.toLowerCase());
+    
+    // Find approved companions
+    const approvedTravelers = notifications
+      .filter(n => n.type === 'join_request' && n.trip?.id === trip.id && n.status === 'accepted')
+      .map(n => ({
+        name: n.sender?.name || "Traveler",
+        avatar: n.sender?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+        role: "Co-traveler"
+      }));
+
+    // Host buddy
+    const hostBuddy = isOwnTrip ? [] : [{
+      name: trip.host?.name || "Host",
+      avatar: trip.host?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+      role: "Host"
+    }];
+
+    return {
+      ...trip,
+      buddies: [...hostBuddy, ...approvedTravelers]
+    };
+  });
+
+  // Merge dynamic past trips with the preloaded list for visual richness
+  const mergedPastTrips = [...dynamicPastTrips];
+  completedTrips.forEach(ct => {
+    if (!mergedPastTrips.some(t => t.destination.toLowerCase() === ct.destination.toLowerCase())) {
+      mergedPastTrips.push(ct);
+    }
   });
 
   return (
@@ -203,7 +266,7 @@ export default function Trips() {
           onClick={() => setActiveTab('past')}
           style={{ padding: '0.6rem 1.75rem', borderRadius: 'var(--radius-full)', fontWeight: '600' }}
         >
-          Past Travels ({completedTrips.length})
+          Past Travels ({mergedPastTrips.length})
         </button>
       </div>
 
@@ -308,7 +371,7 @@ export default function Trips() {
         )
       ) : (
         <div className="trips-grid">
-          {completedTrips.map(trip => (
+          {mergedPastTrips.map(trip => (
             <div key={trip.id} className="trip-card animate-fade-in" style={{ filter: 'grayscale(15%)', opacity: 0.95 }}>
               <div className="trip-image-wrap">
                 <img src={trip.image} alt={trip.destination} className="trip-image" />
