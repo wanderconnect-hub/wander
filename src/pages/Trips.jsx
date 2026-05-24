@@ -54,13 +54,13 @@ export default function Trips() {
     const requestStatus = notifications.find(
       n => n.type === 'join_request' && n.sender.email === currentUserEmail && n.trip.id === trip.id
     )?.status;
-    
+
     return requestStatus === 'accepted';
   });
 
   return (
     <div className="animate-fade-in" style={{ paddingBottom: '3rem' }}>
-      
+
       {/* Page Header */}
       <div className="page-header" style={{ marginBottom: '2rem' }}>
         <div>
@@ -71,14 +71,14 @@ export default function Trips() {
 
       {/* Tabs Switcher */}
       <div className="filters-bar" style={{ marginBottom: '2.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', gap: '1.5rem' }}>
-        <button 
+        <button
           className={`filter-chip ${activeTab === 'upcoming' ? 'active' : ''}`}
           onClick={() => setActiveTab('upcoming')}
           style={{ padding: '0.6rem 1.75rem', borderRadius: 'var(--radius-full)', fontWeight: '600' }}
         >
           Upcoming Trips ({upcomingTrips.length})
         </button>
-        <button 
+        <button
           className={`filter-chip ${activeTab === 'past' ? 'active' : ''}`}
           onClick={() => setActiveTab('past')}
           style={{ padding: '0.6rem 1.75rem', borderRadius: 'var(--radius-full)', fontWeight: '600' }}
@@ -99,7 +99,7 @@ export default function Trips() {
           <div className="trips-grid">
             {upcomingTrips.map(trip => {
               const isOwnTrip = trip.host.email === currentUserEmail;
-              
+
               // Find approved travelers for this trip to display as companions
               const approvedTravelers = notifications
                 .filter(n => n.type === 'join_request' && n.trip.id === trip.id && n.status === 'accepted')
@@ -121,13 +121,13 @@ export default function Trips() {
 
                   <div className="trip-content" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                      <span style={{ 
-                        fontSize: '0.75rem', 
-                        background: isOwnTrip ? 'rgba(0, 78, 137, 0.1)' : 'rgba(16, 185, 129, 0.1)', 
-                        color: isOwnTrip ? 'var(--secondary)' : 'var(--success)', 
-                        padding: '0.25rem 0.75rem', 
-                        borderRadius: 'var(--radius-full)', 
-                        fontWeight: '700' 
+                      <span style={{
+                        fontSize: '0.75rem',
+                        background: isOwnTrip ? 'rgba(0, 78, 137, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                        color: isOwnTrip ? 'var(--secondary)' : 'var(--success)',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: 'var(--radius-full)',
+                        fontWeight: '700'
                       }}>
                         {isOwnTrip ? "✦ Hosting" : "✓ Approved Plan"}
                       </span>
@@ -150,10 +150,10 @@ export default function Trips() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         {/* Include host */}
                         <div style={{ position: 'relative' }}>
-                          <img 
-                            src={trip.host.avatar} 
-                            alt={trip.host.name} 
-                            style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid var(--primary)', objectFit: 'cover' }} 
+                          <img
+                            src={trip.host.avatar}
+                            alt={trip.host.name}
+                            style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid var(--primary)', objectFit: 'cover' }}
                             title={`${trip.host.name} (Host)`}
                           />
                           <span style={{ position: 'absolute', bottom: '-4px', right: '-4px', background: 'var(--primary)', color: 'white', fontSize: '0.5rem', padding: '1px 3px', borderRadius: '3px', fontWeight: 'bold' }}>H</span>
@@ -161,11 +161,11 @@ export default function Trips() {
 
                         {/* Approved travelers */}
                         {approvedTravelers.map((traveler, index) => (
-                          <img 
+                          <img
                             key={index}
-                            src={traveler.avatar} 
-                            alt={traveler.name} 
-                            style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid var(--border-color)', objectFit: 'cover' }} 
+                            src={traveler.avatar}
+                            alt={traveler.name}
+                            style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid var(--border-color)', objectFit: 'cover' }}
                             title={`${traveler.name} (Companion)`}
                           />
                         ))}
@@ -197,13 +197,13 @@ export default function Trips() {
 
               <div className="trip-content">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <span style={{ 
-                    fontSize: '0.75rem', 
-                    background: 'var(--border-color)', 
-                    color: 'var(--text-main)', 
-                    padding: '0.25rem 0.75rem', 
-                    borderRadius: 'var(--radius-full)', 
-                    fontWeight: '700' 
+                  <span style={{
+                    fontSize: '0.75rem',
+                    background: 'var(--border-color)',
+                    color: 'var(--text-main)',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: 'var(--radius-full)',
+                    fontWeight: '700'
                   }}>
                     • Completed
                   </span>
@@ -225,11 +225,11 @@ export default function Trips() {
                   </h5>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     {trip.buddies.map((buddy, index) => (
-                      <img 
+                      <img
                         key={index}
-                        src={buddy.avatar} 
-                        alt={buddy.name} 
-                        style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid var(--border-color)', objectFit: 'cover' }} 
+                        src={buddy.avatar}
+                        alt={buddy.name}
+                        style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid var(--border-color)', objectFit: 'cover' }}
                         title={`${buddy.name} (${buddy.role})`}
                       />
                     ))}
