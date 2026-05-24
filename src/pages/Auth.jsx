@@ -79,9 +79,14 @@ export default function Auth() {
         console.error("Profile upsert failed (handled by DB trigger):", err);
       }
 
-      setUserProfile(userProfileData);
-      setCurrentUserEmail(data.user.email);
-      setIsAuthenticated(true);
+      if (!data.session) {
+        alert("Registration successful! A confirmation email has been sent. Please verify your email and then sign in.");
+        switchMode('login');
+      } else {
+        setUserProfile(userProfileData);
+        setCurrentUserEmail(data.user.email);
+        setIsAuthenticated(true);
+      }
     } else if (authMode === 'login') {
       if (!formData.email.trim() || !formData.password.trim()) {
         setErrorMsg('Email and password are required.');
