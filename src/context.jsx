@@ -827,7 +827,8 @@ export function TravelProvider({ children }) {
       setChats,
       connectTravelBuddies,
       calculateAge,
-      createSupabaseChat
+      createSupabaseChat,
+      fetchSupabaseNotifications
     }}>
       {children}
     </TravelContext.Provider>

@@ -4,7 +4,7 @@ import { TravelContext } from '../context.jsx';
 import { supabase } from '../supabase';
 
 export default function Feed() {
-  const { userProfile, currentUserEmail, currentUserId, trips, setTrips, loading, notifications, setNotifications, setBuddies, chats, setChats } = useContext(TravelContext);
+  const { userProfile, currentUserEmail, currentUserId, trips, setTrips, loading, notifications, setNotifications, setBuddies, chats, setChats, fetchSupabaseNotifications } = useContext(TravelContext);
   const [activeFilter, setActiveFilter] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
@@ -124,6 +124,8 @@ export default function Feed() {
         .then(({ error }) => {
           if (error) {
             console.error("Error inserting join_request in Supabase:", error);
+          } else {
+            fetchSupabaseNotifications();
           }
         });
     } else {

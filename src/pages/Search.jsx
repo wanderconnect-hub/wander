@@ -12,7 +12,8 @@ export default function Search() {
     notifications, 
     setNotifications,
     calculateAge,
-    currentUserId
+    currentUserId,
+    fetchSupabaseNotifications
   } = useContext(TravelContext);
   
   const navigate = useNavigate();
@@ -160,6 +161,15 @@ export default function Search() {
     const isSupabaseReceiver = matchUser?.id && typeof matchUser.id === 'string' && matchUser.id.length > 20;
     const isSupabaseSender = currentUserId && typeof currentUserId === 'string' && currentUserId.length > 20;
 
+    console.log("handleSendRequest - Debug details:", {
+      personEmail: person.email,
+      matchUser,
+      isSupabaseReceiver,
+      isSupabaseSender,
+      currentUserId,
+      currentUserEmail
+    });
+
     if (isSupabaseReceiver && isSupabaseSender) {
       supabase
         .from('notifications')
@@ -173,6 +183,9 @@ export default function Search() {
         .then(({ error }) => {
           if (error) {
             console.error("Error sending connect request to Supabase:", error);
+          } else {
+            console.log("Connect request sent successfully! Fetching notifications...");
+            fetchSupabaseNotifications();
           }
         });
     } else {
