@@ -1,9 +1,10 @@
 import { useState, useContext } from 'react';
 import { MapPin, Calendar, CheckCircle, Plus, Image as ImageIcon, UserPlus, Clock } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
+import { supabase } from '../supabase';
 
 export default function Feed() {
-  const { userProfile, currentUserEmail, trips, setTrips, notifications, setNotifications, setBuddies, chats, setChats } = useContext(TravelContext);
+  const { userProfile, currentUserEmail, currentUserId, trips, setTrips, notifications, setNotifications, setBuddies, chats, setChats } = useContext(TravelContext);
   const [activeFilter, setActiveFilter] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
@@ -18,36 +19,74 @@ export default function Feed() {
     }, 4000);
   };
 
-  const handlePostTrip = (e) => {
+  const handlePostTrip = async (e) => {
     e.preventDefault();
-    const newTrip = {
-      id: Date.now(),
-      destination: e.target.destination.value,
-      date: e.target.date.value,
-      budget: e.target.budget.value,
-      description: e.target.description.value,
-      category: e.target.category.value,
-      image: imagePreview || "https://images.unsplash.com/photo-1506929562872-bb421503ef21?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-      host: {
-        name: userProfile.name,
-        email: currentUserEmail,
-        verified: true,
-        avatar: userProfile.avatar
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        showToast("You must be logged in to post a trip.", "error");
+        return;
       }
-    };
-    setTrips([newTrip, ...trips]);
-    setIsModalOpen(false);
-    setImagePreview(null);
-    e.target.reset();
-    showToast("Successfully posted your new trip!");
+
+      const tripData = {
+        destination: e.target.destination.value,
+        date: e.target.date.value,
+        budget: e.target.budget.value,
+        description: e.target.description.value,
+        category: e.target.category.value,
+        image: imagePreview || "https://images.unsplash.com/photo-1506929562872-bb421503ef21?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+        host_id: user.id
+      };
+
+      const { data, error } = await supabase
+        .from('trips')
+        .insert(tripData)
+        .select('*, host:profiles(*)')
+        .single();
+
+      if (error) {
+        console.error("Error inserting trip into Supabase:", error.message);
+        showToast("Failed to post trip to database.", "error");
+        return;
+      }
+
+      if (data) {
+        const formattedTrip = {
+          id: data.id,
+          destination: data.destination,
+          date: data.date,
+          budget: data.budget,
+          description: data.description,
+          category: data.category,
+          image: data.image,
+          host: {
+            name: data.host?.name || userProfile.name,
+            email: data.host?.email || currentUserEmail,
+            verified: true,
+            avatar: data.host?.avatar || userProfile.avatar
+          }
+        };
+
+        setTrips([formattedTrip, ...trips]);
+        setIsModalOpen(false);
+        setImagePreview(null);
+        e.target.reset();
+        showToast("Successfully posted your new trip!");
+      }
+    } catch (err) {
+      console.error("Post trip exception:", err);
+      showToast("Something went wrong.", "error");
+    }
   };
 
   const handleRequestToJoin = (trip) => {
-    // 1. Create a "sent request" notification in state
+    const hostEmail = trip.host?.email;
+    const hostName = trip.host?.name || "Host";
+
     const newRequest = {
       id: `req-${Date.now()}`,
       type: "join_request",
-      receiverEmail: trip.host.email, // Address directly to the host
+      receiverEmail: hostEmail,
       sender: {
         name: userProfile.name,
         email: currentUserEmail,
@@ -58,7 +97,7 @@ export default function Feed() {
       trip: {
         id: trip.id,
         destination: trip.destination,
-        hostEmail: trip.host.email
+        hostEmail: hostEmail
       },
       status: "pending",
       timestamp: "Just now",
@@ -66,12 +105,12 @@ export default function Feed() {
     };
 
     setNotifications(prev => [newRequest, ...prev]);
-    showToast(`Join request sent to ${trip.host.name}!`, 'info');
+    showToast(`Join request sent to ${hostName}!`, 'info');
   };
 
   const getRequestStatus = (tripId) => {
     const req = notifications.find(
-      n => n.type === 'join_request' && n.sender.email === currentUserEmail && n.trip.id === tripId
+      n => n.type === 'join_request' && n.sender?.email === currentUserEmail && n.trip?.id === tripId
     );
     return req ? req.status : null;
   };
@@ -139,7 +178,7 @@ export default function Feed() {
       ) : (
         <div className="trips-grid">
           {filteredTrips.map(trip => {
-            const isOwnTrip = trip.host.email === currentUserEmail;
+            const isOwnTrip = (trip.host?.id && trip.host?.id === currentUserId) || (trip.host?.email && trip.host?.email.toLowerCase() === currentUserEmail.toLowerCase());
             const requestStatus = getRequestStatus(trip.id);
 
             return (
@@ -234,15 +273,15 @@ export default function Feed() {
 
                   <div className="trip-host">
                     <div className="host-avatar-wrap">
-                      <img src={trip.host.avatar} alt={trip.host.name} className="host-avatar" />
-                      {trip.host.verified && (
+                      <img src={trip.host?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"} alt={trip.host?.name || "Host"} className="host-avatar" />
+                      {trip.host?.verified && (
                         <div className="verified-badge" title="Verified User">
                           <CheckCircle size={12} strokeWidth={3} />
                         </div>
                       )}
                     </div>
                     <div className="host-info" style={{ flex: 1 }}>
-                      <h5>{trip.host.name}</h5>
+                      <h5>{trip.host?.name || "Traveler"}</h5>
                       <p>Est. Budget: {trip.budget}</p>
                     </div>
                     <span style={{ fontSize: '0.75rem', background: 'var(--background)', color: 'var(--primary)', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-full)', fontWeight: 'bold' }}>

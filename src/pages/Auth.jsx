@@ -4,7 +4,7 @@ import { TravelContext } from '../context.jsx';
 import { supabase } from '../supabase';
 
 export default function Auth() {
-  const { setIsAuthenticated, setUserProfile, setCurrentUserEmail } = useContext(TravelContext);
+  const { setIsAuthenticated, setUserProfile, setCurrentUserEmail, setCurrentUserId } = useContext(TravelContext);
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'register' | 'forgot'
   const [formData, setFormData] = useState({ name: '', email: '', password: '', gender: '', dob: '' });
   const [errorMsg, setErrorMsg] = useState('');
@@ -20,9 +20,9 @@ export default function Auth() {
     setErrorMsg('');
 
     if (authMode === 'forgot') {
-      const { error } = await supabase.auth.resetPasswordForEmail(formData.email.trim());
-      if (error) {
-        setErrorMsg(error.message);
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(formData.email.trim());
+      if (resetError) {
+        setErrorMsg(resetError.message);
       } else {
         alert("Password reset link sent to your email!");
         switchMode('login');
@@ -36,7 +36,7 @@ export default function Auth() {
         return;
       }
 
-      const { data, error } = await supabase.auth.signUp({
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: formData.email.trim(),
         password: formData.password,
         options: {
@@ -48,8 +48,8 @@ export default function Auth() {
         }
       });
 
-      if (error) {
-        setErrorMsg(error.message);
+      if (signUpError) {
+        setErrorMsg(signUpError.message);
         return;
       }
 
@@ -72,20 +72,21 @@ export default function Auth() {
 
       try {
         await supabase.from('profiles').upsert({
-          id: data.user.id,
-          email: data.user.email,
+          id: signUpData.user.id,
+          email: signUpData.user.email,
           ...userProfileData
         });
       } catch (err) {
         console.error("Profile upsert failed (handled by DB trigger):", err);
       }
 
-      if (!data.session) {
+      if (!signUpData.session) {
         alert("Registration successful! A confirmation email has been sent. Please verify your email and then sign in.");
         switchMode('login');
       } else {
         setUserProfile(userProfileData);
-        setCurrentUserEmail(data.user.email);
+        setCurrentUserEmail(signUpData.user.email);
+        setCurrentUserId(signUpData.user.id);
         setIsAuthenticated(true);
       }
     } else if (authMode === 'login') {
@@ -94,20 +95,20 @@ export default function Auth() {
         return;
       }
 
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: formData.email.trim(),
         password: formData.password
       });
 
-      if (error) {
-        setErrorMsg(error.message);
+      if (signInError) {
+        setErrorMsg(signInError.message);
         return;
       }
 
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', data.user.id)
+        .eq('id', signInData.user.id)
         .single();
 
       if (profile) {
@@ -122,7 +123,7 @@ export default function Auth() {
         });
       } else {
         setUserProfile({
-          name: data.user.email,
+          name: signInData.user.email,
           bio: "Tell us about yourself!",
           styles: ["Adventurer"],
           avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
@@ -130,7 +131,8 @@ export default function Auth() {
         });
       }
 
-      setCurrentUserEmail(data.user.email);
+      setCurrentUserEmail(signInData.user.email);
+      setCurrentUserId(signInData.user.id);
       setIsAuthenticated(true);
     }
   };

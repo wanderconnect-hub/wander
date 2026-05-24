@@ -117,26 +117,90 @@ export function TravelProvider({ children }) {
     ];
   });
 
+
+
+
+
+
+
+  // Current User Profile
+  const [userProfile, setUserProfile] = useState(() => {
+    const saved = localStorage.getItem('wc_userProfile');
+    return saved ? JSON.parse(saved) : {
+      name: "Alex Chen",
+      bio: "Hey! I'm Alex. I've been traveling full-time for the last 2 years. I love finding off-the-beaten-path locations, trying local street food, and hiking up to great viewpoints. I'm generally pretty easy-going and love deep conversations over a coffee or beer. Looking for travel buddies who don't mind waking up early for sunrise shots!",
+      styles: ["Backpacking", "Photography", "Foodie", "Budget"],
+      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+      title: "Digital Nomad & Adventure Photographer",
+      gender: "Male",
+      dob: "1997-04-12"
+    };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('wc_userProfile', JSON.stringify(userProfile));
+  }, [userProfile]);
+
+  // Auth State
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('wc_isAuthenticated') === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('wc_isAuthenticated', isAuthenticated);
+  }, [isAuthenticated]);
+
+  const [currentUserEmail, setCurrentUserEmail] = useState(() => {
+    return localStorage.getItem('wc_currentUserEmail') || '';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('wc_currentUserEmail', currentUserEmail);
+  }, [currentUserEmail]);
+
+  const [currentUserId, setCurrentUserId] = useState(() => {
+    return localStorage.getItem('wc_currentUserId') || '';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('wc_currentUserId', currentUserId);
+  }, [currentUserId]);
+
+  // Initial travel buddies for the user (synced per registered user account)
+  const [buddies, setBuddies] = useState([]);
+
+  // Sync buddies state when the logged-in email changes
+  useEffect(() => {
+    if (currentUserEmail) {
+      const user = registeredUsers.find(u => u.email.toLowerCase() === currentUserEmail.toLowerCase());
+      if (user) {
+        setBuddies(user.buddies || []);
+      }
+    } else {
+      setBuddies([]);
+    }
+  }, [currentUserEmail, registeredUsers]);
+
+  // Shared Trips State (moved from Feed.jsx to make it global)
+  const [trips, setTrips] = useState([]);
+
   useEffect(() => {
     let active = true;
 
-    const fetchProfiles = async () => {
+    const fetchTripsAndProfiles = async () => {
       try {
-        const { data, error } = await supabase
+        // Fetch profiles
+        const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('*');
 
-        if (error) {
-          console.error("Error fetching profiles from Supabase:", error);
-          return;
-        }
-
-        if (data && active) {
-          // Map Supabase profiles to the expected structure in registeredUsers
-          const mappedUsers = data.map(p => ({
+        if (profilesError) {
+          console.error("Error fetching profiles:", profilesError);
+        } else if (profilesData && active) {
+          const mappedUsers = profilesData.map(p => ({
             id: p.id,
             name: p.name,
-            email: p.email || `${p.name.toLowerCase().replace(/\s+/g, '')}@wanderconnect.com`,
+            email: p.email || (currentUserId && p.id === currentUserId ? currentUserEmail : `${p.name.toLowerCase().replace(/\s+/g, '')}@wanderconnect.com`),
             profile: {
               name: p.name,
               bio: p.bio || "Tell us about yourself! Click 'Edit Profile' to add your bio, tagline, and travel styles.",
@@ -148,7 +212,6 @@ export function TravelProvider({ children }) {
             }
           }));
 
-          // Keep mock profiles if they don't exist in Supabase yet
           const defaultUsers = [
             {
               name: "Alex Chen",
@@ -221,157 +284,116 @@ export function TravelProvider({ children }) {
 
           setRegisteredUsers(combined);
         }
+
+        // Fetch trips
+        const { data: tripsData, error: tripsError } = await supabase
+          .from('trips')
+          .select('*, host:profiles(*)');
+
+        if (tripsError) {
+          console.error("Error fetching trips:", tripsError);
+        } else if (tripsData && active) {
+          const mappedTrips = tripsData.map(t => ({
+            id: t.id,
+            destination: t.destination,
+            date: t.date,
+            budget: t.budget,
+            description: t.description,
+            category: t.category,
+            image: t.image,
+            host: {
+              name: t.host?.name || "Traveler",
+              email: t.host?.email || "",
+              avatar: t.host?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+              verified: true
+            }
+          }));
+
+          const defaultTrips = [
+            {
+              id: 1,
+              destination: "Manali, Himachal Pradesh",
+              date: "Oct 15 - Oct 25",
+              budget: "₹15,000",
+              description: "Looking for 2 adventure seekers to explore Rohtang Pass, cafe hop in Old Manali, and do the Kheerganga trek.",
+              image: "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+              category: "Adventure",
+              host: {
+                name: "Rohan Sharma",
+                email: "rohan@wanderconnect.com",
+                verified: true,
+                avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
+              }
+            },
+            {
+              id: 2,
+              destination: "South Goa Beaches",
+              date: "Nov 05 - Nov 12",
+              budget: "₹8,000",
+              description: "Cozy beachside workstation, exploring hidden waterfalls, and sunset kayaking. Relaxed vibe, remote work friendly.",
+              image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+              category: "Relaxation",
+              host: {
+                name: "Priya Desai",
+                email: "priya@wanderconnect.com",
+                verified: true,
+                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
+              }
+            },
+            {
+              id: 3,
+              destination: "Spiti Valley, Himachal",
+              date: "Sep 20 - Sep 30",
+              budget: "₹22,000",
+              description: "Epic road trip through Spiti. Need physically fit companions who love high altitudes and starry nights.",
+              image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+              category: "Hiking",
+              host: {
+                name: "Arjun Verma",
+                email: "arjun@wanderconnect.com",
+                verified: false,
+                avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
+              }
+            },
+            {
+              id: 4,
+              destination: "Varkala Beach, Kerala",
+              date: "Dec 10 - Dec 18",
+              budget: "₹12,000",
+              description: "Heading down to Kerala for surfing, sunset cafes, and chilling by the cliff. Looking for surf enthusiasts and beach lovers!",
+              image: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+              category: "Relaxation",
+              host: {
+                name: "Alex Chen",
+                email: "alex@wanderconnect.com",
+                verified: true,
+                avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
+              }
+            }
+          ];
+
+          const combinedTrips = [...mappedTrips];
+          defaultTrips.forEach(dt => {
+            if (!combinedTrips.some(ct => ct.destination.toLowerCase() === dt.destination.toLowerCase() && ct.date === dt.date)) {
+              combinedTrips.push(dt);
+            }
+          });
+
+          setTrips(combinedTrips);
+        }
       } catch (err) {
-        console.error("Failed fetching profiles:", err);
+        console.error("Failed fetching trips and profiles:", err);
       }
     };
 
     if (isAuthenticated) {
-      fetchProfiles();
+      fetchTripsAndProfiles();
     }
 
     return () => {
       active = false;
     };
-  }, [isAuthenticated]);
-
-
-
-
-
-  // Current User Profile
-  const [userProfile, setUserProfile] = useState(() => {
-    const saved = localStorage.getItem('wc_userProfile');
-    return saved ? JSON.parse(saved) : {
-      name: "Alex Chen",
-      bio: "Hey! I'm Alex. I've been traveling full-time for the last 2 years. I love finding off-the-beaten-path locations, trying local street food, and hiking up to great viewpoints. I'm generally pretty easy-going and love deep conversations over a coffee or beer. Looking for travel buddies who don't mind waking up early for sunrise shots!",
-      styles: ["Backpacking", "Photography", "Foodie", "Budget"],
-      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-      title: "Digital Nomad & Adventure Photographer",
-      gender: "Male",
-      dob: "1997-04-12"
-    };
-  });
-
-  useEffect(() => {
-    localStorage.setItem('wc_userProfile', JSON.stringify(userProfile));
-  }, [userProfile]);
-
-  // Auth State
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('wc_isAuthenticated') === 'true';
-  });
-
-  useEffect(() => {
-    localStorage.setItem('wc_isAuthenticated', isAuthenticated);
-  }, [isAuthenticated]);
-
-  const [currentUserEmail, setCurrentUserEmail] = useState(() => {
-    return localStorage.getItem('wc_currentUserEmail') || '';
-  });
-
-  useEffect(() => {
-    localStorage.setItem('wc_currentUserEmail', currentUserEmail);
-  }, [currentUserEmail]);
-
-  // Initial travel buddies for the user (synced per registered user account)
-  const [buddies, setBuddies] = useState([]);
-
-  // Sync buddies state when the logged-in email changes
-  useEffect(() => {
-    if (currentUserEmail) {
-      const user = registeredUsers.find(u => u.email.toLowerCase() === currentUserEmail.toLowerCase());
-      if (user) {
-        setBuddies(user.buddies || []);
-      }
-    } else {
-      setBuddies([]);
-    }
-  }, [currentUserEmail, registeredUsers]);
-
-  // Shared Trips State (moved from Feed.jsx to make it global)
-  const [trips, setTrips] = useState(() => {
-    const saved = localStorage.getItem('wc_trips');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return parsed.map(t => {
-          if (t.image === "https://images.unsplash.com/photo-1610715936287-6c2ab208cb22?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80") {
-            return { ...t, image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" };
-          }
-          return t;
-        });
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    return [
-      {
-        id: 1,
-        destination: "Manali, Himachal Pradesh",
-        date: "Oct 15 - Oct 25",
-        budget: "₹15,000",
-        description: "Looking for 2 adventure seekers to explore Rohtang Pass, cafe hop in Old Manali, and do the Kheerganga trek.",
-        image: "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        category: "Adventure",
-        host: {
-          name: "Rohan Sharma",
-          email: "rohan@wanderconnect.com",
-          verified: true,
-          avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
-        }
-      },
-      {
-        id: 2,
-        destination: "South Goa Beaches",
-        date: "Nov 05 - Nov 12",
-        budget: "₹8,000",
-        description: "Cozy beachside workstation, exploring hidden waterfalls, and sunset kayaking. Relaxed vibe, remote work friendly.",
-        image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        category: "Relaxation",
-        host: {
-          name: "Priya Desai",
-          email: "priya@wanderconnect.com",
-          verified: true,
-          avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
-        }
-      },
-      {
-        id: 3,
-        destination: "Spiti Valley, Himachal",
-        date: "Sep 20 - Sep 30",
-        budget: "₹22,000",
-        description: "Epic road trip through Spiti. Need physically fit companions who love high altitudes and starry nights.",
-        image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        category: "Hiking",
-        host: {
-          name: "Arjun Verma",
-          email: "arjun@wanderconnect.com",
-          verified: false,
-          avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
-        }
-      },
-      {
-        id: 4,
-        destination: "Varkala Beach, Kerala",
-        date: "Dec 10 - Dec 18",
-        budget: "₹12,000",
-        description: "Heading down to Kerala for surfing, sunset cafes, and chilling by the cliff. Looking for surf enthusiasts and beach lovers!",
-        image: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        category: "Relaxation",
-        host: {
-          name: "Alex Chen",
-          email: "alex@wanderconnect.com",
-          verified: true,
-          avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
-        }
-      }
-    ];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('wc_trips', JSON.stringify(trips));
-  }, [trips]);
+  }, [isAuthenticated, currentUserEmail, currentUserId]);
 
   // Joint Requests & Notifications State
   const [notifications, setNotifications] = useState(() => {
@@ -508,6 +530,8 @@ export function TravelProvider({ children }) {
       setRegisteredUsers,
       currentUserEmail,
       setCurrentUserEmail,
+      currentUserId,
+      setCurrentUserId,
       trips,
       setTrips,
       notifications,

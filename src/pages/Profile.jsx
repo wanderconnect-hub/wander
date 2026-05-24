@@ -4,7 +4,7 @@ import { TravelContext } from '../context.jsx';
 import { supabase } from '../supabase';
 
 export default function Profile() {
-  const { buddies, userProfile, setUserProfile, currentUserEmail, setRegisteredUsers, calculateAge } = useContext(TravelContext);
+  const { buddies, userProfile, setUserProfile, currentUserEmail, currentUserId, setRegisteredUsers, calculateAge } = useContext(TravelContext);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState(userProfile);
 
@@ -33,7 +33,7 @@ export default function Profile() {
     // Also update the registered database so changes persist across logout/login
     if (currentUserEmail) {
       setRegisteredUsers(prev => prev.map(u => 
-        u.email.toLowerCase() === currentUserEmail.toLowerCase() ? { ...u, profile: editForm } : u
+        (u.id === currentUserId || (u.email && u.email.toLowerCase() === currentUserEmail.toLowerCase())) ? { ...u, profile: editForm } : u
       ));
     }
     
