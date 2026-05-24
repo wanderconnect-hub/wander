@@ -9,6 +9,7 @@ import Trips from './pages/Trips';
 import Search from './pages/Search';
 import Auth from './pages/Auth';
 import { TravelContext } from './context.jsx';
+import { supabase } from './supabase';
 
 function NotificationDrawer({ isOpen, onClose }) {
   const { notifications, setNotifications, setBuddies, setChats, currentUserEmail, userProfile, setRegisteredUsers, connectTravelBuddies, createSupabaseChat, registeredUsers, currentUserId } = React.useContext(TravelContext);
@@ -18,25 +19,48 @@ function NotificationDrawer({ isOpen, onClose }) {
   const handleAccept = (notif) => {
     // Handle Connect Request Notification Accept
     if (notif.type === 'connect_request') {
-      // 1. Update the original notification's status to 'accepted' and mark read
-      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, status: 'accepted', read: true } : n));
+      const isSupabaseNotif = typeof notif.id === 'string' && notif.id.includes('-');
+      
+      if (isSupabaseNotif) {
+        // Update notification status to accepted
+        supabase
+          .from('notifications')
+          .update({ status: 'accepted', read: true })
+          .eq('id', notif.id)
+          .then();
+        
+        // Insert connect_accepted notification for the sender
+        supabase
+          .from('notifications')
+          .insert({
+            type: 'connect_accepted',
+            sender_id: currentUserId,
+            receiver_id: notif.sender.id,
+            status: 'accepted',
+            read: false
+          })
+          .then();
+      } else {
+        // 1. Update the original notification's status to 'accepted' and mark read
+        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, status: 'accepted', read: true } : n));
 
-      // 2. Add connect_accepted notification for the sender
-      const acceptanceNotification = {
-        id: `accept-${Date.now()}`,
-        type: "connect_accepted",
-        receiverEmail: notif.sender.email,
-        sender: {
-          name: userProfile.name,
-          email: currentUserEmail,
-          avatar: userProfile.avatar
-        },
-        status: "accepted",
-        timestamp: "Just now",
-        read: false
-      };
-      // We wrap the setter to preserve both the original update and the new notification
-      setNotifications(prev => [acceptanceNotification, ...prev.map(n => n.id === notif.id ? { ...n, status: 'accepted', read: true } : n)]);
+        // 2. Add connect_accepted notification for the sender
+        const acceptanceNotification = {
+          id: `accept-${Date.now()}`,
+          type: "connect_accepted",
+          receiverEmail: notif.sender.email,
+          sender: {
+            name: userProfile.name,
+            email: currentUserEmail,
+            avatar: userProfile.avatar
+          },
+          status: "accepted",
+          timestamp: "Just now",
+          read: false
+        };
+        // We wrap the setter to preserve both the original update and the new notification
+        setNotifications(prev => [acceptanceNotification, ...prev.map(n => n.id === notif.id ? { ...n, status: 'accepted', read: true } : n)]);
+      }
 
       // Add as travel buddies to BOTH users
       connectTravelBuddies(currentUserEmail, notif.sender.email, {
@@ -93,28 +117,52 @@ function NotificationDrawer({ isOpen, onClose }) {
       return;
     }
 
-    // 1. Update notification status to accepted in context
-    setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, status: 'accepted', read: true } : n));
-    
-    // 2. Push a new "request_accepted" notification for the sender of the request
-    const acceptanceNotification = {
-      id: `accept-${Date.now()}`,
-      type: "request_accepted",
-      receiverEmail: notif.sender.email, // Sent to the person who requested!
-      sender: {
-        name: userProfile.name, // The host who accepted
-        email: currentUserEmail,
-        avatar: userProfile.avatar
-      },
-      trip: {
-        id: notif.trip.id,
-        destination: notif.trip.destination
-      },
-      status: "accepted",
-      timestamp: "Just now",
-      read: false
-    };
-    setNotifications(prev => [acceptanceNotification, ...prev]);
+    const isSupabaseNotif = typeof notif.id === 'string' && notif.id.includes('-');
+
+    if (isSupabaseNotif) {
+      // Update notification status to accepted
+      supabase
+        .from('notifications')
+        .update({ status: 'accepted', read: true })
+        .eq('id', notif.id)
+        .then();
+      
+      // Insert request_accepted notification for the sender
+      supabase
+        .from('notifications')
+        .insert({
+          type: 'request_accepted',
+          sender_id: currentUserId,
+          receiver_id: notif.sender.id,
+          trip_id: notif.trip.id,
+          status: 'accepted',
+          read: false
+        })
+        .then();
+    } else {
+      // 1. Update notification status to accepted in context
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, status: 'accepted', read: true } : n));
+      
+      // 2. Push a new "request_accepted" notification for the sender of the request
+      const acceptanceNotification = {
+        id: `accept-${Date.now()}`,
+        type: "request_accepted",
+        receiverEmail: notif.sender.email, // Sent to the person who requested!
+        sender: {
+          name: userProfile.name, // The host who accepted
+          email: currentUserEmail,
+          avatar: userProfile.avatar
+        },
+        trip: {
+          id: notif.trip.id,
+          destination: notif.trip.destination
+        },
+        status: "accepted",
+        timestamp: "Just now",
+        read: false
+      };
+      setNotifications(prev => [acceptanceNotification, ...prev]);
+    }
 
     // 3. Add as travel buddies to BOTH users
     connectTravelBuddies(currentUserEmail, notif.sender.email, {
@@ -171,10 +219,26 @@ function NotificationDrawer({ isOpen, onClose }) {
   };
 
   const handleDecline = (notif) => {
-    setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, status: 'declined', read: true } : n));
+    const isSupabaseNotif = typeof notif.id === 'string' && notif.id.includes('-');
+    if (isSupabaseNotif) {
+      supabase
+        .from('notifications')
+        .update({ status: 'declined', read: true })
+        .eq('id', notif.id)
+        .then();
+    } else {
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, status: 'declined', read: true } : n));
+    }
   };
 
   const handleMarkAllRead = () => {
+    if (currentUserId) {
+      supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('receiver_id', currentUserId)
+        .then();
+    }
     setNotifications(prev => prev.map(n => n.receiverEmail === currentUserEmail ? { ...n, read: true } : n));
   };
 

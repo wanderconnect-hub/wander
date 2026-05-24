@@ -106,28 +106,50 @@ export default function Feed() {
     const hostEmail = trip.host?.email;
     const hostName = trip.host?.name || "Host";
 
-    const newRequest = {
-      id: `req-${Date.now()}`,
-      type: "join_request",
-      receiverEmail: hostEmail,
-      sender: {
-        name: userProfile.name,
-        email: currentUserEmail,
-        avatar: userProfile.avatar,
-        location: "Local Traveler",
-        style: userProfile.styles?.[0] || "Explorer"
-      },
-      trip: {
-        id: trip.id,
-        destination: trip.destination,
-        hostEmail: hostEmail
-      },
-      status: "pending",
-      timestamp: "Just now",
-      read: false
-    };
+    const isSupabaseTrip = typeof trip.id === 'string' && trip.id.length > 20;
+    const isSupabaseSender = currentUserId && typeof currentUserId === 'string' && currentUserId.length > 20;
+    const hostId = trip.host?.id;
 
-    setNotifications(prev => [newRequest, ...prev]);
+    if (isSupabaseTrip && isSupabaseSender && hostId) {
+      supabase
+        .from('notifications')
+        .insert({
+          type: 'join_request',
+          sender_id: currentUserId,
+          receiver_id: hostId,
+          trip_id: trip.id,
+          status: 'pending',
+          read: false
+        })
+        .then(({ error }) => {
+          if (error) {
+            console.error("Error inserting join_request in Supabase:", error);
+          }
+        });
+    } else {
+      const newRequest = {
+        id: `req-${Date.now()}`,
+        type: "join_request",
+        receiverEmail: hostEmail,
+        sender: {
+          name: userProfile.name,
+          email: currentUserEmail,
+          avatar: userProfile.avatar,
+          location: "Local Traveler",
+          style: userProfile.styles?.[0] || "Explorer"
+        },
+        trip: {
+          id: trip.id,
+          destination: trip.destination,
+          hostEmail: hostEmail
+        },
+        status: "pending",
+        timestamp: "Just now",
+        read: false
+      };
+
+      setNotifications(prev => [newRequest, ...prev]);
+    }
     showToast(`Join request sent to ${hostName}!`, 'info');
   };
 

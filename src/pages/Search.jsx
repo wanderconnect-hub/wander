@@ -2,6 +2,7 @@ import { useState, useContext } from 'react';
 import { Search as SearchIcon, UserPlus, Check, MessageSquare, AlertCircle, MapPin, Plane, ShieldCheck } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabase';
 
 export default function Search() {
   const { 
@@ -10,7 +11,8 @@ export default function Search() {
     buddies, 
     notifications, 
     setNotifications,
-    calculateAge
+    calculateAge,
+    currentUserId
   } = useContext(TravelContext);
   
   const navigate = useNavigate();
@@ -154,33 +156,54 @@ export default function Search() {
   };
 
   const handleSendRequest = (person) => {
-    const activeUser = registeredUsers.find(u => u.email === currentUserEmail) || {
-      name: "Alex Chen",
-      profile: {
+    const matchUser = registeredUsers.find(u => u.email.toLowerCase() === person.email.toLowerCase());
+    const isSupabaseReceiver = matchUser?.id && typeof matchUser.id === 'string' && matchUser.id.length > 20;
+    const isSupabaseSender = currentUserId && typeof currentUserId === 'string' && currentUserId.length > 20;
+
+    if (isSupabaseReceiver && isSupabaseSender) {
+      supabase
+        .from('notifications')
+        .insert({
+          type: 'connect_request',
+          sender_id: currentUserId,
+          receiver_id: matchUser.id,
+          status: 'pending',
+          read: false
+        })
+        .then(({ error }) => {
+          if (error) {
+            console.error("Error sending connect request to Supabase:", error);
+          }
+        });
+    } else {
+      const activeUser = registeredUsers.find(u => u.email === currentUserEmail) || {
         name: "Alex Chen",
-        avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-        styles: ["Explorer"]
-      }
-    };
+        profile: {
+          name: "Alex Chen",
+          avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+          styles: ["Explorer"]
+        }
+      };
 
-    const newRequest = {
-      id: `conn-${Date.now()}`,
-      type: "connect_request",
-      receiverEmail: person.email,
-      sender: {
-        id: Date.now(),
-        name: activeUser.name || activeUser.profile.name,
-        email: currentUserEmail,
-        avatar: activeUser.profile.avatar,
-        location: person.location,
-        style: activeUser.profile.styles?.[0] || "Explorer"
-      },
-      status: "pending",
-      timestamp: "Just now",
-      read: false
-    };
+      const newRequest = {
+        id: `conn-${Date.now()}`,
+        type: "connect_request",
+        receiverEmail: person.email,
+        sender: {
+          id: Date.now(),
+          name: activeUser.name || activeUser.profile.name,
+          email: currentUserEmail,
+          avatar: activeUser.profile.avatar,
+          location: person.location,
+          style: activeUser.profile.styles?.[0] || "Explorer"
+        },
+        status: "pending",
+        timestamp: "Just now",
+        read: false
+      };
 
-    setNotifications(prev => [newRequest, ...prev]);
+      setNotifications(prev => [newRequest, ...prev]);
+    }
   };
 
   return (

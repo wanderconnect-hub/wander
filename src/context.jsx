@@ -652,10 +652,69 @@ export function TravelProvider({ children }) {
     }
   };
 
-  // Sync Supabase chats on authentication
+  const fetchSupabaseNotifications = async () => {
+    if (!isAuthenticated || !currentUserId) return;
+    try {
+      const { data: notifsData, error } = await supabase
+        .from('notifications')
+        .select('*, sender:sender_id(*), receiver:receiver_id(*), trip:trip_id(*)')
+        .or(`receiver_id.eq.${currentUserId},sender_id.eq.${currentUserId}`)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Error loading notifications:", error);
+        return;
+      }
+
+      if (notifsData) {
+        const mapped = notifsData.map(n => {
+          const senderProf = n.sender || {};
+          const receiverProf = n.receiver || {};
+          
+          return {
+            id: n.id,
+            type: n.type,
+            receiverEmail: receiverProf.email || "",
+            sender: {
+              id: senderProf.id,
+              name: senderProf.name || "Traveler",
+              email: senderProf.email || "",
+              avatar: senderProf.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+              location: senderProf.location || "Local Traveler",
+              style: senderProf.styles?.[0] || "Explorer"
+            },
+            trip: n.trip ? {
+              id: n.trip.id,
+              destination: n.trip.destination,
+              hostEmail: receiverProf.email || ""
+            } : null,
+            status: n.status,
+            timestamp: new Date(n.created_at).toLocaleDateString() === new Date().toLocaleDateString()
+              ? new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : new Date(n.created_at).toLocaleDateString(),
+            read: n.read
+          };
+        });
+
+        setNotifications(prev => {
+          const mockNotifs = prev.filter(n => typeof n.id === 'string' && !n.id.includes('-'));
+          const dbNotifs = mapped;
+          const filteredMock = mockNotifs.filter(mn => 
+            !dbNotifs.some(dn => dn.sender.email === mn.sender.email && dn.type === mn.type && dn.trip?.id === mn.trip?.id)
+          );
+          return [...dbNotifs, ...filteredMock];
+        });
+      }
+    } catch (err) {
+      console.error("Exception loading notifications:", err);
+    }
+  };
+
+  // Sync Supabase chats and notifications on authentication
   useEffect(() => {
     if (isAuthenticated && currentUserId) {
       fetchChatsAndMessages();
+      fetchSupabaseNotifications();
 
       // Subscribe to real-time messages changes to receive updates instantly
       const channel = supabase
@@ -665,8 +724,17 @@ export function TravelProvider({ children }) {
         })
         .subscribe();
 
+      // Subscribe to real-time notifications changes to receive updates instantly
+      const notifChannel = supabase
+        .channel('realtime-notifications-room')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
+          fetchSupabaseNotifications();
+        })
+        .subscribe();
+
       return () => {
         supabase.removeChannel(channel);
+        supabase.removeChannel(notifChannel);
       };
     }
   }, [isAuthenticated, currentUserId]);
