@@ -26,9 +26,32 @@ export default function Trips() {
         return;
       }
 
+      const startDateVal = e.target.startDate.value;
+      const endDateVal = e.target.endDate.value;
+
+      if (new Date(startDateVal) > new Date(endDateVal)) {
+        showToast("End date cannot be before start date.", "error");
+        return;
+      }
+
+      const formatDateRange = (startStr, endStr) => {
+        const start = new Date(startStr);
+        const end = new Date(endStr);
+        const options = { month: 'short', day: 'numeric' };
+        const startFormatted = start.toLocaleDateString('en-US', options);
+        const endFormatted = end.toLocaleDateString('en-US', options);
+        
+        if (start.getFullYear() === end.getFullYear()) {
+          return `${startFormatted} - ${endFormatted}`;
+        }
+        return `${startFormatted}, ${start.getFullYear()} - ${endFormatted}, ${end.getFullYear()}`;
+      };
+
+      const dateStr = formatDateRange(startDateVal, endDateVal);
+
       const tripData = {
         destination: e.target.destination.value,
-        date: e.target.date.value,
+        date: dateStr,
         budget: e.target.budget.value,
         description: e.target.description.value,
         category: e.target.category.value,
@@ -392,13 +415,30 @@ export default function Trips() {
             
             <div style={{ display: 'flex', gap: '1rem' }}>
               <div className="form-group" style={{ flex: 1 }}>
-                <label className="form-label">Dates</label>
-                <input name="date" type="text" className="form-control" placeholder="e.g. Oct 15 - 25" required />
+                <label className="form-label">Start Date</label>
+                <input 
+                  name="startDate" 
+                  type="date" 
+                  className="form-control" 
+                  required 
+                  style={{ background: 'var(--background)', color: 'var(--text-main)', border: '1px solid var(--border-color)', height: '48px', padding: '0.5rem' }} 
+                />
               </div>
               <div className="form-group" style={{ flex: 1 }}>
-                <label className="form-label">Estimated Budget</label>
-                <input name="budget" type="text" className="form-control" placeholder="e.g. ₹15,000" />
+                <label className="form-label">End Date</label>
+                <input 
+                  name="endDate" 
+                  type="date" 
+                  className="form-control" 
+                  required 
+                  style={{ background: 'var(--background)', color: 'var(--text-main)', border: '1px solid var(--border-color)', height: '48px', padding: '0.5rem' }} 
+                />
               </div>
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label">Estimated Budget</label>
+              <input name="budget" type="text" className="form-control" placeholder="e.g. ₹15,000" />
             </div>
             
             <div className="form-group">
