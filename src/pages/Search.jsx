@@ -19,6 +19,7 @@ export default function Search() {
   
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [sendingIds, setSendingIds] = useState(new Set());
   
   // Custom mock database for searchable travelers (including predefined buddies & mock Connect profiles)
   const allSearchablePeopleStatic = [
@@ -184,6 +185,22 @@ export default function Search() {
   };
 
   const handleSendRequest = (person) => {
+    const currentStatus = getRequestStatus(person);
+    if (currentStatus !== 'none') {
+      console.log("Request already exists or connected. Status:", currentStatus);
+      return;
+    }
+    if (sendingIds.has(person.id)) {
+      console.log("Request already in-flight for person:", person.id);
+      return;
+    }
+
+    setSendingIds(prev => {
+      const next = new Set(prev);
+      next.add(person.id);
+      return next;
+    });
+
     const matchUser = registeredUsers.find(u => u.email.toLowerCase() === person.email.toLowerCase());
     const isSupabaseReceiver = matchUser?.id && typeof matchUser.id === 'string' && matchUser.id.length > 20;
     const isSupabaseSender = currentUserId && typeof currentUserId === 'string' && currentUserId.length > 20;
@@ -208,6 +225,11 @@ export default function Search() {
           read: false
         })
         .then(({ error }) => {
+          setSendingIds(prev => {
+            const next = new Set(prev);
+            next.delete(person.id);
+            return next;
+          });
           if (error) {
             console.error("Error sending connect request to Supabase:", error);
           } else {
@@ -243,6 +265,11 @@ export default function Search() {
       };
 
       setNotifications(prev => [newRequest, ...prev]);
+      setSendingIds(prev => {
+        const next = new Set(prev);
+        next.delete(person.id);
+        return next;
+      });
     }
   };
 
@@ -419,6 +446,7 @@ export default function Search() {
                   ) : (
                     <button 
                       onClick={() => handleSendRequest(person)}
+                      disabled={sendingIds.has(person.id)}
                       style={{
                         background: 'var(--primary)',
                         color: 'white',
@@ -427,17 +455,18 @@ export default function Search() {
                         borderRadius: 'var(--radius-full)',
                         fontSize: '0.9rem',
                         fontWeight: '600',
-                        cursor: 'pointer',
+                        cursor: sendingIds.has(person.id) ? 'not-allowed' : 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.5rem',
                         boxShadow: 'var(--shadow-sm)',
-                        transition: 'var(--transition)'
+                        transition: 'var(--transition)',
+                        opacity: sendingIds.has(person.id) ? 0.6 : 1
                       }}
-                      onMouseOver={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                      onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
+                      onMouseOver={e => { if (!sendingIds.has(person.id)) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                      onMouseOut={e => { if (!sendingIds.has(person.id)) e.currentTarget.style.transform = 'translateY(0)'; }}
                     >
-                      <UserPlus size={16} /> Connect
+                      <UserPlus size={16} /> {sendingIds.has(person.id) ? 'Connecting...' : 'Connect'}
                     </button>
                   )}
                 </div>
