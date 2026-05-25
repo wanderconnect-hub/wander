@@ -104,43 +104,51 @@ export default function Search() {
   ];
 
   // Dynamic list derived from registeredUsers
-  const registeredEmails = new Set((registeredUsers || []).map(u => u.email.toLowerCase()));
+  const registeredEmails = new Set(
+    (registeredUsers || [])
+      .map(u => u?.email?.toLowerCase())
+      .filter(Boolean)
+  );
   
   const mappedRegistered = (registeredUsers || []).map(u => {
-    const existingMock = allSearchablePeopleStatic.find(p => p.email.toLowerCase() === u.email.toLowerCase());
-    const id = existingMock?.id || `${u.name.toLowerCase().replace(/\s+/g, '-')}-${u.email.split('@')[0].slice(-3)}`;
-    const ageVal = u.profile?.dob ? calculateAge(u.profile.dob) : (u.profile?.age || existingMock?.age || 26);
+    const emailVal = u?.email || "";
+    const nameVal = u?.profile?.name || u?.name || "Traveler";
+    const existingMock = allSearchablePeopleStatic.find(p => p.email && p.email.toLowerCase() === emailVal.toLowerCase());
+    const id = u?.id || existingMock?.id || `${nameVal.toLowerCase().replace(/\s+/g, '-')}-${emailVal.split('@')[0]?.slice(-3) || '000'}`;
+    const ageVal = u?.profile?.dob ? calculateAge(u.profile.dob) : (u?.profile?.age || existingMock?.age || 26);
     
     return {
       id,
-      name: u.profile?.name || u.name,
-      email: u.email,
+      name: nameVal,
+      email: emailVal,
       age: ageVal,
-      gender: u.profile?.gender || existingMock?.gender || "Male",
-      avatar: u.profile?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-      location: u.profile?.location || existingMock?.location || "Local Traveler",
-      style: Array.isArray(u.profile?.styles) ? u.profile.styles.join(', ') : u.profile?.styles || existingMock?.style || 'Adventurer',
-      bio: u.profile?.bio || existingMock?.bio || "Hey there! I am new here, let's connect and explore together.",
-      nextTrip: u.profile?.nextTrip || existingMock?.nextTrip || "Planning next adventure",
+      gender: u?.profile?.gender || existingMock?.gender || "Male",
+      avatar: u?.profile?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+      location: u?.profile?.location || existingMock?.location || "Local Traveler",
+      style: Array.isArray(u?.profile?.styles) ? u.profile.styles.join(', ') : u?.profile?.styles || existingMock?.style || 'Adventurer',
+      bio: u?.profile?.bio || existingMock?.bio || "Hey there! I am new here, let's connect and explore together.",
+      nextTrip: u?.profile?.nextTrip || existingMock?.nextTrip || "Planning next adventure",
       verified: existingMock?.verified !== undefined ? existingMock.verified : false
     };
   });
 
-  const remainingMock = allSearchablePeopleStatic.filter(p => !registeredEmails.has(p.email.toLowerCase()));
+  const remainingMock = allSearchablePeopleStatic.filter(p => p.email && !registeredEmails.has(p.email.toLowerCase()));
   const allSearchablePeople = [...mappedRegistered, ...remainingMock];
 
   // Exclude active user from search results
-  const otherPeople = allSearchablePeople.filter(p => p.email.toLowerCase() !== currentUserEmail.toLowerCase());
+  const otherPeople = allSearchablePeople.filter(p => 
+    p.email && currentUserEmail && p.email.toLowerCase() !== currentUserEmail.toLowerCase()
+  );
 
   // Filter search results
   const filteredPeople = otherPeople.filter(person => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) return true; // Show all by default
     return (
-      person.name.toLowerCase().includes(query) ||
-      person.id.toLowerCase().includes(query) ||
-      person.location.toLowerCase().includes(query) ||
-      person.style.toLowerCase().includes(query)
+      (person.name || "").toLowerCase().includes(query) ||
+      (person.id || "").toLowerCase().includes(query) ||
+      (person.location || "").toLowerCase().includes(query) ||
+      (person.style || "").toLowerCase().includes(query)
     );
   });
 
