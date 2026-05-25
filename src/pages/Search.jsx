@@ -154,38 +154,38 @@ export default function Search() {
 
   const getRequestStatus = (person) => {
     // Find registered user corresponding to search result
-    const matchUser = registeredUsers.find(u => u.email.toLowerCase() === person.email.toLowerCase());
+    const matchUser = (registeredUsers || []).find(u => u.email && person.email && u.email.toLowerCase() === person.email.toLowerCase());
     
     // Check if they are already buddies
     if (matchUser) {
-      const isBuddy = buddies.some(b => b.id === matchUser.id);
+      const isBuddy = (buddies || []).some(b => b.id === matchUser.id);
       if (isBuddy) return 'connected';
     }
-    const isBuddyByEmail = buddies.some(b => b.name === person.name);
+    const isBuddyByEmail = (buddies || []).some(b => person.name && b.name === person.name);
     if (isBuddyByEmail) return 'connected';
 
     // Check if there is an incoming pending request from this person to us
-    const incomingReq = notifications.find(n => {
+    const incomingReq = (notifications || []).find(n => {
       if (n.type !== 'connect_request' || n.status !== 'pending') return false;
       const isSupabaseNotif = n.senderId && n.receiverId;
       if (isSupabaseNotif) {
         return n.senderId === matchUser?.id && n.receiverId === currentUserId;
       } else {
-        return n.sender?.email?.toLowerCase() === person.email.toLowerCase() && 
-               n.receiverEmail?.toLowerCase() === currentUserEmail.toLowerCase();
+        return n.sender?.email?.toLowerCase() === person.email?.toLowerCase() && 
+               n.receiverEmail?.toLowerCase() === currentUserEmail?.toLowerCase();
       }
     });
     if (incomingReq) return 'incoming';
 
     // Find connect request notification sent by us to this person
-    const req = notifications.find(n => {
+    const req = (notifications || []).find(n => {
       if (n.type !== 'connect_request') return false;
       const isSupabaseNotif = n.senderId && n.receiverId;
       if (isSupabaseNotif) {
         return n.senderId === currentUserId && n.receiverId === matchUser?.id;
       } else {
-        return n.sender?.email?.toLowerCase() === currentUserEmail.toLowerCase() && 
-               n.receiverEmail?.toLowerCase() === person.email.toLowerCase();
+        return n.sender?.email?.toLowerCase() === currentUserEmail?.toLowerCase() && 
+               n.receiverEmail?.toLowerCase() === person.email?.toLowerCase();
       }
     });
     
@@ -209,7 +209,7 @@ export default function Search() {
       return next;
     });
 
-    const matchUser = registeredUsers.find(u => u.email.toLowerCase() === person.email.toLowerCase());
+    const matchUser = (registeredUsers || []).find(u => u.email && person.email && u.email.toLowerCase() === person.email.toLowerCase());
     const isSupabaseReceiver = matchUser?.id && typeof matchUser.id === 'string' && matchUser.id.length > 20;
     const isSupabaseSender = currentUserId && typeof currentUserId === 'string' && currentUserId.length > 20;
 
@@ -425,15 +425,15 @@ export default function Search() {
                   ) : status === 'incoming' ? (
                     <button 
                       onClick={() => {
-                        const matchUser = registeredUsers.find(u => u.email.toLowerCase() === person.email.toLowerCase());
-                        const incomingNotif = notifications.find(n => {
+                        const matchUser = (registeredUsers || []).find(u => u.email && person.email && u.email.toLowerCase() === person.email.toLowerCase());
+                        const incomingNotif = (notifications || []).find(n => {
                           if (n.type !== 'connect_request' || n.status !== 'pending') return false;
                           const isSupabaseNotif = n.senderId && n.receiverId;
                           if (isSupabaseNotif) {
                             return n.senderId === matchUser?.id && n.receiverId === currentUserId;
                           } else {
-                            return n.sender?.email?.toLowerCase() === person.email.toLowerCase() && 
-                                   n.receiverEmail?.toLowerCase() === currentUserEmail.toLowerCase();
+                            return n.sender?.email?.toLowerCase() === person.email?.toLowerCase() && 
+                                   n.receiverEmail?.toLowerCase() === currentUserEmail?.toLowerCase();
                           }
                         });
                         if (incomingNotif) handleAcceptNotification(incomingNotif);
