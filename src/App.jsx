@@ -78,9 +78,8 @@ function NotificationDrawer({ isOpen, onClose }) {
       });
 
       // Create new chat thread
-      const matchUser = registeredUsers.find(u => u.email.toLowerCase() === notif.sender.email.toLowerCase());
-      if (matchUser?.id && typeof matchUser.id === 'string' && matchUser.id.length > 20) {
-        createSupabaseChat(matchUser.id, `Hey! I accepted your connection request. Let's travel together!`);
+      if (notif.sender.id && typeof notif.sender.id === 'string' && notif.sender.id.length > 20) {
+        createSupabaseChat(notif.sender.id, `Hey! I accepted your connection request. Let's travel together!`);
       } else {
         setChats(prev => {
           const chatIndex = prev.findIndex(c => 
@@ -180,9 +179,8 @@ function NotificationDrawer({ isOpen, onClose }) {
     });
 
     // 4. Create or append message thread using the new participants schema
-    const matchUser = registeredUsers.find(u => u.email.toLowerCase() === notif.sender.email.toLowerCase());
-    if (matchUser?.id && typeof matchUser.id === 'string' && matchUser.id.length > 20) {
-      createSupabaseChat(matchUser.id, `Hey! Thanks for accepting my request to join your trip to ${notif.trip.destination}. Let's coordinate details here.`);
+    if (notif.sender.id && typeof notif.sender.id === 'string' && notif.sender.id.length > 20) {
+      createSupabaseChat(notif.sender.id, `Hey! Thanks for accepting my request to join your trip to ${notif.trip.destination}. Let's coordinate details here.`);
     } else {
       setChats(prev => {
         const chatIndex = prev.findIndex(c => 

@@ -551,7 +551,7 @@ export function TravelProvider({ children }) {
 
         return {
           id: chatId,
-          participants: chatParticipants.map(p => p.profiles?.email || p.user_id),
+          participants: chatParticipants.map(p => p.user_id),
           name: otherPart?.profiles?.name || "Travel Buddy",
           avatar: otherPart?.profiles?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
           time: timeStr,
@@ -562,6 +562,7 @@ export function TravelProvider({ children }) {
             return {
               id: m.id,
               senderEmail: senderEmail,
+              sender_id: m.sender_id,
               text: m.text
             };
           })
@@ -828,7 +829,8 @@ export function TravelProvider({ children }) {
       connectTravelBuddies,
       calculateAge,
       createSupabaseChat,
-      fetchSupabaseNotifications
+      fetchSupabaseNotifications,
+      fetchChatsAndMessages
     }}>
       {children}
     </TravelContext.Provider>

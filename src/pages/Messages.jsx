@@ -4,15 +4,27 @@ import { TravelContext } from '../context.jsx';
 import { supabase } from '../supabase';
 
 export default function Messages() {
-  const { chats, setChats, currentUserEmail, registeredUsers, currentUserId } = useContext(TravelContext);
+  const { chats, setChats, currentUserEmail, registeredUsers, currentUserId, fetchChatsAndMessages } = useContext(TravelContext);
   const messagesEndRef = useRef(null);
   
   // Resolve participant details dynamically based on the active user profile
   const visibleChats = chats
-    .filter(chat => chat.participants.includes(currentUserEmail))
+    .filter(chat => 
+      chat.participants.includes(currentUserId) || 
+      chat.participants.includes(currentUserEmail) ||
+      chat.participants.some(p => p.toLowerCase() === currentUserEmail.toLowerCase())
+    )
     .map(chat => {
-      const otherEmail = chat.participants.find(email => email !== currentUserEmail);
-      const otherUser = registeredUsers.find(u => u.email === otherEmail);
+      const otherParticipant = chat.participants.find(p => 
+        p !== currentUserId && 
+        p !== currentUserEmail && 
+        p.toLowerCase() !== currentUserEmail.toLowerCase()
+      );
+      
+      const otherUser = registeredUsers.find(u => 
+        u.id === otherParticipant || 
+        u.email.toLowerCase() === otherParticipant?.toLowerCase()
+      );
       
       return {
         ...chat,
@@ -21,7 +33,7 @@ export default function Messages() {
         lastMsg: chat.messages[chat.messages.length - 1]?.text || "Start chatting!",
         messages: chat.messages.map(msg => ({
           ...msg,
-          sender: msg.senderEmail === currentUserEmail ? 'me' : 'them'
+          sender: (msg.sender_id === currentUserId || (msg.senderEmail && msg.senderEmail.toLowerCase() === currentUserEmail.toLowerCase())) ? 'me' : 'them'
         }))
       };
     });
@@ -66,6 +78,8 @@ export default function Messages() {
           });
         if (error) {
           console.error("Error sending message to Supabase:", error.message);
+        } else {
+          fetchChatsAndMessages();
         }
       } catch (err) {
         console.error("Send message exception:", err);
