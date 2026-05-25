@@ -42,7 +42,22 @@ const mockSuggestions = [
 ];
 
 export default function Connect() {
-  const { setBuddies, setChats, currentUserEmail, currentUserId, buddies, userProfile, connectTravelBuddies, registeredUsers, calculateAge, loading, createSupabaseChat } = useContext(TravelContext);
+  const { 
+    setBuddies, 
+    setChats, 
+    currentUserEmail, 
+    currentUserId, 
+    buddies, 
+    userProfile, 
+    connectTravelBuddies, 
+    registeredUsers, 
+    calculateAge, 
+    loading, 
+    createSupabaseChat,
+    notifications,
+    handleAcceptNotification,
+    handleDeclineNotification
+  } = useContext(TravelContext);
   const [passedUserIds, setPassedUserIds] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matchAlert, setMatchAlert] = useState(null);
@@ -165,152 +180,246 @@ export default function Connect() {
     );
   }
 
-  if (suggestions.length === 0) {
+  const incomingRequests = notifications.filter(n => {
+    if (n.type !== 'connect_request' || n.status !== 'pending') return false;
+    const isSupabaseReceiver = n.receiverId === currentUserId;
+    const isMockReceiver = n.receiverEmail && n.receiverEmail.toLowerCase() === currentUserEmail.toLowerCase();
+    return isSupabaseReceiver || isMockReceiver;
+  });
+
+  const hasSuggestions = suggestions.length > 0;
+  const hasIncoming = incomingRequests.length > 0;
+
+  if (!hasSuggestions && !hasIncoming) {
     return (
       <div className="animate-fade-in" style={{ textAlign: 'center', marginTop: '4rem' }}>
-        <h2>No more suggestions for now!</h2>
+        <h2>No more suggestions or pending requests for now!</h2>
         <p style={{ color: 'var(--text-muted)' }}>Check back later for more travel buddies.</p>
       </div>
     );
   }
 
-  const currentUser = suggestions[currentIndex];
+  const currentUser = hasSuggestions ? suggestions[currentIndex] : null;
 
   return (
-    <div className="animate-fade-in" style={{ maxWidth: '400px', margin: '0 auto', paddingTop: '2rem' }}>
+    <div className="animate-fade-in" style={{ maxWidth: '450px', margin: '0 auto', paddingTop: '2rem' }}>
       <h1 className="page-title" style={{ textAlign: 'center', marginBottom: '1.5rem', fontSize: '2rem' }}>Connect</h1>
-      
-      <div style={{ textAlign: 'center', marginBottom: '1.5rem', color: 'var(--text-muted)', fontSize: '0.95rem', fontWeight: '600' }}>
-        Profile {currentIndex + 1} of {suggestions.length}
-      </div>
 
-      {matchAlert && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'var(--success)',
-          color: 'white',
-          padding: '1rem 2rem',
-          borderRadius: 'var(--radius-full)',
-          boxShadow: 'var(--shadow-lg)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem',
-          animation: 'fadeIn 0.3s ease'
-        }}>
-          <Check size={24} />
-          <strong>It's a Match!</strong> You and {matchAlert.name} are now travel buddies!
+      {/* Incoming Requests Section */}
+      {hasIncoming && (
+        <div style={{ marginBottom: '2.5rem' }}>
+          <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)' }}>
+            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)' }}></span>
+            Incoming Connect Requests ({incomingRequests.length})
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {incomingRequests.map(notif => (
+              <div 
+                key={notif.id}
+                className="trip-card"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  padding: '1rem',
+                  background: 'white',
+                  borderRadius: 'var(--radius-lg)',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+              >
+                <img 
+                  src={notif.sender.avatar} 
+                  alt={notif.sender.name} 
+                  style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover' }}
+                />
+                <div style={{ flex: 1 }}>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 'bold' }}>{notif.sender.name}</h4>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{notif.sender.location || "Traveler"}</p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button 
+                    onClick={() => handleAcceptNotification(notif)}
+                    style={{
+                      background: 'var(--success)',
+                      color: 'white',
+                      border: 'none',
+                      padding: '0.4rem 0.8rem',
+                      borderRadius: 'var(--radius-sm)',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      fontWeight: 'bold',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.2rem'
+                    }}
+                  >
+                    <Check size={14} /> Accept
+                  </button>
+                  <button 
+                    onClick={() => handleDeclineNotification(notif)}
+                    style={{
+                      background: 'rgba(239, 71, 111, 0.1)',
+                      color: 'var(--danger)',
+                      border: '1px solid var(--danger)',
+                      padding: '0.4rem 0.8rem',
+                      borderRadius: 'var(--radius-sm)',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      fontWeight: 'bold',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.2rem'
+                    }}
+                  >
+                    <X size={14} /> Decline
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      <div className="trip-card" style={{ position: 'relative', overflow: 'hidden' }}>
-        <img 
-          src={currentUser.avatar} 
-          alt={currentUser.name} 
-          style={{ width: '100%', height: '400px', objectFit: 'cover' }} 
-        />
-        
-        <div style={{ 
-          position: 'absolute', 
-          bottom: 0, 
-          left: 0, 
-          width: '100%', 
-          background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
-          color: 'white',
-          padding: '2rem 1.5rem 1rem'
-        }}>
-          <h2 style={{ fontSize: '1.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {currentUser.name}, {currentUser.age} <span style={{ fontSize: '1.2rem', opacity: 0.8, color: 'var(--primary)' }}>({currentUser.gender})</span>
-          </h2>
-          <p style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-            <MapPin size={16} /> {currentUser.location}
-          </p>
-          <p style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--primary)', fontWeight: '600' }}>
-            <Plane size={16} /> Next Trip: {currentUser.nextTrip}
-          </p>
-          <div style={{ background: 'var(--primary)', display: 'inline-block', padding: '0.2rem 0.8rem', borderRadius: 'var(--radius-full)', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '1rem', color: 'white' }}>
-            {currentUser.style}
+      {/* Swipe Suggestions Section */}
+      {hasSuggestions ? (
+        <>
+          <div style={{ textAlign: 'center', marginBottom: '1.5rem', color: 'var(--text-muted)', fontSize: '0.95rem', fontWeight: '600' }}>
+            Profile {currentIndex + 1} of {suggestions.length}
           </div>
-          <p style={{ fontSize: '0.95rem', lineHeight: '1.4' }}>
-            {currentUser.bio}
-          </p>
+
+          {matchAlert && (
+            <div style={{
+              position: 'fixed',
+              top: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'var(--success)',
+              color: 'white',
+              padding: '1rem 2rem',
+              borderRadius: 'var(--radius-full)',
+              boxShadow: 'var(--shadow-lg)',
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              animation: 'fadeIn 0.3s ease'
+            }}>
+              <Check size={24} />
+              <strong>It's a Match!</strong> You and {matchAlert.name} are now travel buddies!
+            </div>
+          )}
+
+          <div className="trip-card" style={{ position: 'relative', overflow: 'hidden' }}>
+            <img 
+              src={currentUser.avatar} 
+              alt={currentUser.name} 
+              style={{ width: '100%', height: '400px', objectFit: 'cover' }} 
+            />
+            
+            <div style={{ 
+              position: 'absolute', 
+              bottom: 0, 
+              left: 0, 
+              width: '100%', 
+              background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+              color: 'white',
+              padding: '2rem 1.5rem 1rem'
+            }}>
+              <h2 style={{ fontSize: '1.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {currentUser.name}, {currentUser.age} <span style={{ fontSize: '1.2rem', opacity: 0.8, color: 'var(--primary)' }}>({currentUser.gender})</span>
+              </h2>
+              <p style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+                <MapPin size={16} /> {currentUser.location}
+              </p>
+              <p style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--primary)', fontWeight: '600' }}>
+                <Plane size={16} /> Next Trip: {currentUser.nextTrip}
+              </p>
+              <div style={{ background: 'var(--primary)', display: 'inline-block', padding: '0.2rem 0.8rem', borderRadius: 'var(--radius-full)', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '1rem', color: 'white' }}>
+                {currentUser.style}
+              </div>
+              <p style={{ fontSize: '0.95rem', lineHeight: '1.4' }}>
+                {currentUser.bio}
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', marginTop: '2rem' }}>
+            {/* Previous Button */}
+            <button 
+              onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
+              disabled={currentIndex === 0}
+              style={{
+                width: '52px', height: '52px', borderRadius: '50%',
+                background: 'white', border: '1px solid var(--border-color)',
+                color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: 'var(--shadow-sm)', cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
+                opacity: currentIndex === 0 ? 0.4 : 1,
+                transition: 'var(--transition)'
+              }}
+              onMouseOver={e => { if (currentIndex > 0) e.currentTarget.style.transform = 'scale(1.1)'; }}
+              onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+              title="Previous Profile"
+            >
+              <ChevronLeft size={24} />
+            </button>
+
+            {/* Pass Button */}
+            <button 
+              onClick={() => handleAction(currentUser, 'pass')}
+              style={{
+                width: '64px', height: '64px', borderRadius: '50%',
+                background: 'white', border: '2px solid var(--danger)',
+                color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: 'var(--shadow-md)', cursor: 'pointer', transition: 'var(--transition)'
+              }}
+              onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
+              onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+              title="Pass"
+            >
+              <X size={32} />
+            </button>
+            
+            {/* Accept Button */}
+            <button 
+              onClick={() => handleAction(currentUser, 'accept')}
+              style={{
+                width: '64px', height: '64px', borderRadius: '50%',
+                background: 'var(--success)', border: 'none',
+                color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: 'var(--shadow-md)', cursor: 'pointer', transition: 'var(--transition)'
+              }}
+              onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
+              onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+              title="Connect"
+            >
+              <Check size={32} />
+            </button>
+
+            {/* Next Button */}
+            <button 
+              onClick={() => setCurrentIndex(prev => Math.min(suggestions.length - 1, prev + 1))}
+              disabled={currentIndex === suggestions.length - 1}
+              style={{
+                width: '52px', height: '52px', borderRadius: '50%',
+                background: 'white', border: '1px solid var(--border-color)',
+                color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: 'var(--shadow-sm)', cursor: currentIndex === suggestions.length - 1 ? 'not-allowed' : 'pointer',
+                opacity: currentIndex === suggestions.length - 1 ? 0.4 : 1,
+                transition: 'var(--transition)'
+              }}
+              onMouseOver={e => { if (currentIndex < suggestions.length - 1) e.currentTarget.style.transform = 'scale(1.1)'; }}
+              onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+              title="Next Profile"
+            >
+              <ChevronRight size={24} />
+            </button>
+          </div>
+        </>
+      ) : (
+        <div style={{ textAlign: 'center', padding: '2rem 1rem', background: 'white', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)' }}>
+          <p style={{ color: 'var(--text-muted)' }}>No more swipe suggestions for today. Keep checking your incoming requests above!</p>
         </div>
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', marginTop: '2rem' }}>
-        {/* Previous Button */}
-        <button 
-          onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
-          disabled={currentIndex === 0}
-          style={{
-            width: '52px', height: '52px', borderRadius: '50%',
-            background: 'white', border: '1px solid var(--border-color)',
-            color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: 'var(--shadow-sm)', cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
-            opacity: currentIndex === 0 ? 0.4 : 1,
-            transition: 'var(--transition)'
-          }}
-          onMouseOver={e => { if (currentIndex > 0) e.currentTarget.style.transform = 'scale(1.1)'; }}
-          onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; }}
-          title="Previous Profile"
-        >
-          <ChevronLeft size={24} />
-        </button>
-
-        {/* Pass Button */}
-        <button 
-          onClick={() => handleAction(currentUser, 'pass')}
-          style={{
-            width: '64px', height: '64px', borderRadius: '50%',
-            background: 'white', border: '2px solid var(--danger)',
-            color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: 'var(--shadow-md)', cursor: 'pointer', transition: 'var(--transition)'
-          }}
-          onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
-          onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
-          title="Pass"
-        >
-          <X size={32} />
-        </button>
-        
-        {/* Accept Button */}
-        <button 
-          onClick={() => handleAction(currentUser, 'accept')}
-          style={{
-            width: '64px', height: '64px', borderRadius: '50%',
-            background: 'var(--success)', border: 'none',
-            color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: 'var(--shadow-md)', cursor: 'pointer', transition: 'var(--transition)'
-          }}
-          onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
-          onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
-          title="Connect"
-        >
-          <Check size={32} />
-        </button>
-
-        {/* Next Button */}
-        <button 
-          onClick={() => setCurrentIndex(prev => Math.min(suggestions.length - 1, prev + 1))}
-          disabled={currentIndex === suggestions.length - 1}
-          style={{
-            width: '52px', height: '52px', borderRadius: '50%',
-            background: 'white', border: '1px solid var(--border-color)',
-            color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: 'var(--shadow-sm)', cursor: currentIndex === suggestions.length - 1 ? 'not-allowed' : 'pointer',
-            opacity: currentIndex === suggestions.length - 1 ? 0.4 : 1,
-            transition: 'var(--transition)'
-          }}
-          onMouseOver={e => { if (currentIndex < suggestions.length - 1) e.currentTarget.style.transform = 'scale(1.1)'; }}
-          onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; }}
-          title="Next Profile"
-        >
-          <ChevronRight size={24} />
-        </button>
-      </div>
+      )}
     </div>
   );
 }

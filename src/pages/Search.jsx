@@ -13,7 +13,8 @@ export default function Search() {
     setNotifications,
     calculateAge,
     currentUserId,
-    fetchSupabaseNotifications
+    fetchSupabaseNotifications,
+    handleAcceptNotification
   } = useContext(TravelContext);
   
   const navigate = useNavigate();
@@ -142,17 +143,43 @@ export default function Search() {
     );
   });
 
-  const getRequestStatus = (email) => {
+  const getRequestStatus = (person) => {
+    // Find registered user corresponding to search result
+    const matchUser = registeredUsers.find(u => u.email.toLowerCase() === person.email.toLowerCase());
+    
     // Check if they are already buddies
-    const isBuddy = buddies.some(b => b.name === otherPeople.find(p => p.email.toLowerCase() === email.toLowerCase())?.name);
-    if (isBuddy) return 'connected';
+    if (matchUser) {
+      const isBuddy = buddies.some(b => b.id === matchUser.id);
+      if (isBuddy) return 'connected';
+    }
+    const isBuddyByEmail = buddies.some(b => b.name === person.name);
+    if (isBuddyByEmail) return 'connected';
 
-    // Find connect request notification
-    const req = notifications.find(
-      n => n.type === 'connect_request' && 
-      n.sender.email.toLowerCase() === currentUserEmail.toLowerCase() && 
-      n.receiverEmail.toLowerCase() === email.toLowerCase()
-    );
+    // Check if there is an incoming pending request from this person to us
+    const incomingReq = notifications.find(n => {
+      if (n.type !== 'connect_request' || n.status !== 'pending') return false;
+      const isSupabaseNotif = n.senderId && n.receiverId;
+      if (isSupabaseNotif) {
+        return n.senderId === matchUser?.id && n.receiverId === currentUserId;
+      } else {
+        return n.sender?.email?.toLowerCase() === person.email.toLowerCase() && 
+               n.receiverEmail?.toLowerCase() === currentUserEmail.toLowerCase();
+      }
+    });
+    if (incomingReq) return 'incoming';
+
+    // Find connect request notification sent by us to this person
+    const req = notifications.find(n => {
+      if (n.type !== 'connect_request') return false;
+      const isSupabaseNotif = n.senderId && n.receiverId;
+      if (isSupabaseNotif) {
+        return n.senderId === currentUserId && n.receiverId === matchUser?.id;
+      } else {
+        return n.sender?.email?.toLowerCase() === currentUserEmail.toLowerCase() && 
+               n.receiverEmail?.toLowerCase() === person.email.toLowerCase();
+      }
+    });
+    
     return req ? req.status : 'none'; // 'pending', 'accepted', 'declined', 'none'
   };
 
@@ -359,6 +386,35 @@ export default function Search() {
                       }}
                     >
                       Request Pending
+                    </button>
+                  ) : status === 'incoming' ? (
+                    <button 
+                      onClick={() => {
+                        const matchUser = registeredUsers.find(u => u.email.toLowerCase() === person.email.toLowerCase());
+                        const incomingNotif = notifications.find(n => {
+                          if (n.type !== 'connect_request' || n.status !== 'pending') return false;
+                          const isSupabaseNotif = n.senderId && n.receiverId;
+                          if (isSupabaseNotif) {
+                            return n.senderId === matchUser?.id && n.receiverId === currentUserId;
+                          } else {
+                            return n.sender?.email?.toLowerCase() === person.email.toLowerCase() && 
+                                   n.receiverEmail?.toLowerCase() === currentUserEmail.toLowerCase();
+                          }
+                        });
+                        if (incomingNotif) handleAcceptNotification(incomingNotif);
+                      }}
+                      style={{
+                        background: 'var(--success)',
+                        color: 'white',
+                        border: 'none',
+                        padding: '0.6rem 1.25rem',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Accept Request
                     </button>
                   ) : (
                     <button 
