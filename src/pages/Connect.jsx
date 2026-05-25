@@ -42,7 +42,7 @@ const mockSuggestions = [
 ];
 
 export default function Connect() {
-  const { setBuddies, setChats, currentUserEmail, buddies, userProfile, connectTravelBuddies, registeredUsers, calculateAge, loading, createSupabaseChat } = useContext(TravelContext);
+  const { setBuddies, setChats, currentUserEmail, currentUserId, buddies, userProfile, connectTravelBuddies, registeredUsers, calculateAge, loading, createSupabaseChat } = useContext(TravelContext);
   const [passedUserIds, setPassedUserIds] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matchAlert, setMatchAlert] = useState(null);
