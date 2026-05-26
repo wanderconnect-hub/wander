@@ -27,7 +27,7 @@ export function TravelProvider({ children }) {
           // Ensure buddies array is initialized for every user
           return parsed.map(u => {
             if (!u.buddies) {
-              const defaultBuddies = u.email.toLowerCase() === 'alex@wanderconnect.com' ? [
+              const defaultBuddies = (u.email || '').toLowerCase() === 'alex@wanderconnect.com' ? [
                 { 
                   id: 101, 
                   name: "Aditi Rao", 
@@ -172,7 +172,7 @@ export function TravelProvider({ children }) {
   // Sync buddies state when the logged-in email changes
   useEffect(() => {
     if (currentUserEmail) {
-      const user = registeredUsers.find(u => u.email.toLowerCase() === currentUserEmail.toLowerCase());
+      const user = registeredUsers.find(u => u.email && u.email.toLowerCase() === currentUserEmail.toLowerCase());
       if (user) {
         setBuddies(user.buddies || []);
       }
@@ -224,7 +224,7 @@ export function TravelProvider({ children }) {
             return {
               id: p.id,
               name: p.name,
-              email: p.email || (currentUserId && p.id === currentUserId ? currentUserEmail : `${p.name.toLowerCase().replace(/\s+/g, '')}@wanderconnect.com`),
+              email: p.email || (currentUserId && p.id === currentUserId ? currentUserEmail : `${(p.name || 'user').toLowerCase().replace(/\s+/g, '')}@wanderconnect.com`),
               buddies: userBuddies,
               profile: {
                 name: p.name,
@@ -303,7 +303,7 @@ export function TravelProvider({ children }) {
 
           const combined = [...mappedUsers];
           defaultUsers.forEach(du => {
-            if (!combined.some(c => c.email.toLowerCase() === du.email.toLowerCase())) {
+            if (!combined.some(c => c.email && du.email && c.email.toLowerCase() === du.email.toLowerCase())) {
               combined.push(du);
             }
           });
@@ -767,7 +767,7 @@ export function TravelProvider({ children }) {
     setRegisteredUsers(prev => {
       const updated = prev.map(u => {
         // Add B to A's buddies
-        if (u.email.toLowerCase() === emailA.toLowerCase()) {
+        if (u.email && emailA && u.email.toLowerCase() === emailA.toLowerCase()) {
           const currentBuddies = u.buddies || [];
           const exists = currentBuddies.some(b => b.name === detailsB.name);
           if (exists) return u;
@@ -784,7 +784,7 @@ export function TravelProvider({ children }) {
           return { ...u, buddies: newBuddies };
         }
         // Add A to B's buddies
-        if (u.email.toLowerCase() === emailB.toLowerCase()) {
+        if (u.email && emailB && u.email.toLowerCase() === emailB.toLowerCase()) {
           const currentBuddies = u.buddies || [];
           const exists = currentBuddies.some(b => b.name === detailsA.name);
           if (exists) return u;
