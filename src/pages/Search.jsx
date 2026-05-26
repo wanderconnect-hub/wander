@@ -328,7 +328,7 @@ export default function Search() {
           </div>
         ) : (
           filteredPeople.map(person => {
-            const status = getRequestStatus(person.email);
+            const status = getRequestStatus(person);
             return (
               <div 
                 key={person.id} 

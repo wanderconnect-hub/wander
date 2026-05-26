@@ -130,12 +130,37 @@ export default function Connect() {
     }
   });
 
-  // Derive suggested profiles dynamically by filtering out current user, connected buddies, and passed profiles
-  const suggestions = allProfiles.filter(s => 
-    s.email.toLowerCase() !== currentUserEmail.toLowerCase() && 
-    !buddies.some(b => b.name === s.name) &&
-    !passedUserIds.includes(s.id)
-  );
+  // Derive suggested profiles dynamically by filtering out current user, connected buddies, passed profiles, and pending/incoming request profiles
+  const suggestions = allProfiles.filter(s => {
+    if (s.email.toLowerCase() === currentUserEmail.toLowerCase()) return false;
+    
+    // Filter out if already buddies
+    const isBuddy = buddies.some(b => {
+      const matchReg = (registeredUsers || []).find(u => u.email && s.email && u.email.toLowerCase() === s.email.toLowerCase());
+      return b.id === matchReg?.id || b.name === s.name;
+    });
+    if (isBuddy) return false;
+
+    // Filter out if passed
+    if (passedUserIds.includes(s.id)) return false;
+
+    // Filter out if there is any pending / sent connect request
+    const matchReg = (registeredUsers || []).find(u => u.email && s.email && u.email.toLowerCase() === s.email.toLowerCase());
+    const hasPendingReq = (notifications || []).some(n => {
+      if (n.type !== 'connect_request' || n.status !== 'pending') return false;
+      const isSupabaseNotif = n.senderId && n.receiverId;
+      if (isSupabaseNotif) {
+        return (n.senderId === currentUserId && n.receiverId === matchReg?.id) ||
+               (n.senderId === matchReg?.id && n.receiverId === currentUserId);
+      } else {
+        return (n.sender?.email?.toLowerCase() === currentUserEmail?.toLowerCase() && n.receiverEmail?.toLowerCase() === s.email?.toLowerCase()) ||
+               (n.sender?.email?.toLowerCase() === s.email?.toLowerCase() && n.receiverEmail?.toLowerCase() === currentUserEmail?.toLowerCase());
+      }
+    });
+    if (hasPendingReq) return false;
+
+    return true;
+  });
 
   const handleAction = async (user, action) => {
     if (isProcessing) return;
