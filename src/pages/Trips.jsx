@@ -9,6 +9,7 @@ export default function Trips() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [toast, setToast] = useState(null);
+  const [posting, setPosting] = useState(false);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -19,6 +20,8 @@ export default function Trips() {
 
   const handlePostTrip = async (e) => {
     e.preventDefault();
+    if (posting) return;
+    setPosting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -97,6 +100,8 @@ export default function Trips() {
     } catch (err) {
       console.error("Post trip exception:", err);
       showToast("Something went wrong.", "error");
+    } finally {
+      setPosting(false);
     }
   };
 
@@ -528,8 +533,18 @@ export default function Trips() {
               ></textarea>
             </div>
             
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '1rem' }}>
-              Publish Trip
+            <button 
+              type="submit" 
+              className="btn btn-primary" 
+              disabled={posting}
+              style={{ 
+                width: '100%', 
+                padding: '1rem',
+                opacity: posting ? 0.6 : 1,
+                cursor: posting ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {posting ? 'Publishing...' : 'Publish Trip'}
             </button>
           </form>
         </div>

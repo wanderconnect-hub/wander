@@ -7,9 +7,12 @@ export default function Profile() {
   const { buddies, userProfile, setUserProfile, currentUserEmail, currentUserId, setRegisteredUsers, calculateAge } = useContext(TravelContext);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState(userProfile);
+  const [saving, setSaving] = useState(false);
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (saving) return;
+    setSaving(true);
     setUserProfile(editForm);
 
     try {
@@ -28,6 +31,8 @@ export default function Profile() {
       }
     } catch (err) {
       console.error("Failed to sync profile update to Supabase:", err);
+    } finally {
+      setSaving(false);
     }
     
     // Also update the registered database so changes persist across logout/login
@@ -270,8 +275,18 @@ export default function Profile() {
               ></textarea>
             </div>
             
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '1rem' }}>
-              Save Changes
+            <button 
+              type="submit" 
+              className="btn btn-primary" 
+              disabled={saving}
+              style={{ 
+                width: '100%', 
+                padding: '1rem',
+                opacity: saving ? 0.6 : 1,
+                cursor: saving ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </form>
         </div>

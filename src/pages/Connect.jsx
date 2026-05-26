@@ -61,6 +61,46 @@ export default function Connect() {
   const [passedUserIds, setPassedUserIds] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matchAlert, setMatchAlert] = useState(null);
+  const [processingIds, setProcessingIds] = useState(new Set());
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleAcceptClick = async (notif) => {
+    if (processingIds.has(notif.id)) return;
+    setProcessingIds(prev => {
+      const next = new Set(prev);
+      next.add(notif.id);
+      return next;
+    });
+    try {
+      await handleAcceptNotification(notif);
+    } catch (e) {
+      console.error(e);
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(notif.id);
+        return next;
+      });
+    }
+  };
+
+  const handleDeclineClick = async (notif) => {
+    if (processingIds.has(notif.id)) return;
+    setProcessingIds(prev => {
+      const next = new Set(prev);
+      next.add(notif.id);
+      return next;
+    });
+    try {
+      await handleDeclineNotification(notif);
+    } catch (e) {
+      console.error(e);
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(notif.id);
+        return next;
+      });
+    }
+  };
 
   // Combine registered users and mock suggestions, using email as unique key
   const allProfiles = [];
@@ -97,70 +137,78 @@ export default function Connect() {
     !passedUserIds.includes(s.id)
   );
 
-  const handleAction = (user, action) => {
-    if (action === 'accept') {
-      // Add as travel buddies to BOTH users
-      connectTravelBuddies(currentUserEmail, user.email, {
-        id: currentUserId,
-        name: userProfile.name,
-        avatar: userProfile.avatar,
-        location: userProfile.location || "Traveler",
-        style: userProfile.styles?.[0] || "Explorer"
-      }, {
-        id: user.id,
-        name: user.name,
-        avatar: user.avatar,
-        location: user.location,
-        style: user.style
-      });
-
-      // Create new chat thread
-      if (user.id && typeof user.id === 'string' && user.id.length > 20) {
-        createSupabaseChat(user.id, `Hey! We matched on WanderConnect. Let's travel together!`);
-      } else {
-        const welcomeMsg = {
-          id: Date.now(),
-          senderEmail: user.email,
-          text: `Hey! We matched on WanderConnect. Let's travel together!`
-        };
-
-        setChats(prev => {
-          const exists = prev.some(c => 
-            c.participants.includes(currentUserEmail) && c.participants.includes(user.email)
-          );
-          if (exists) return prev;
-          
-          return [{
-            id: Date.now(),
-            participants: [currentUserEmail, user.email],
-            name: user.name,
-            avatar: user.avatar,
-            time: "Just now",
-            unread: 1,
-            active: false,
-            messages: [welcomeMsg]
-          }, ...prev];
+  const handleAction = async (user, action) => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    try {
+      if (action === 'accept') {
+        // Add as travel buddies to BOTH users
+        connectTravelBuddies(currentUserEmail, user.email, {
+          id: currentUserId,
+          name: userProfile.name,
+          avatar: userProfile.avatar,
+          location: userProfile.location || "Traveler",
+          style: userProfile.styles?.[0] || "Explorer"
+        }, {
+          id: user.id,
+          name: user.name,
+          avatar: user.avatar,
+          location: user.location,
+          style: user.style
         });
-      }
-      
-      // Show Match Alert
-      setMatchAlert(user);
-      setTimeout(() => {
-        setMatchAlert(null);
-      }, 3000);
-    } else {
-      // For pass, add to passedUserIds
-      setPassedUserIds(prev => [...prev, user.id]);
-    }
 
-    // Adjust currentIndex
-    setCurrentIndex(prev => {
-      const nextLength = suggestions.length - 1;
-      if (prev >= nextLength) {
-        return Math.max(0, nextLength - 1);
+        // Create new chat thread
+        if (user.id && typeof user.id === 'string' && user.id.length > 20) {
+          await createSupabaseChat(user.id, `Hey! We matched on WanderConnect. Let's travel together!`);
+        } else {
+          const welcomeMsg = {
+            id: Date.now(),
+            senderEmail: user.email,
+            text: `Hey! We matched on WanderConnect. Let's travel together!`
+          };
+
+          setChats(prev => {
+            const exists = prev.some(c => 
+              c.participants.includes(currentUserEmail) && c.participants.includes(user.email)
+            );
+            if (exists) return prev;
+            
+            return [{
+              id: Date.now(),
+              participants: [currentUserEmail, user.email],
+              name: user.name,
+              avatar: user.avatar,
+              time: "Just now",
+              unread: 1,
+              active: false,
+              messages: [welcomeMsg]
+            }, ...prev];
+          });
+        }
+        
+        // Show Match Alert
+        setMatchAlert(user);
+        setTimeout(() => {
+          setMatchAlert(null);
+        }, 3000);
+      } else {
+        // For pass, add to passedUserIds
+        setPassedUserIds(prev => [...prev, user.id]);
       }
-      return prev;
-    });
+
+      // Adjust currentIndex
+      setCurrentIndex(prev => {
+        const nextLength = suggestions.length - 1;
+        if (prev >= nextLength) {
+          return Math.max(0, nextLength - 1);
+        }
+        return prev;
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (loading) {
@@ -238,37 +286,41 @@ export default function Connect() {
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button 
-                    onClick={() => handleAcceptNotification(notif)}
+                    disabled={processingIds.has(notif.id)}
+                    onClick={() => handleAcceptClick(notif)}
                     style={{
                       background: 'var(--success)',
                       color: 'white',
                       border: 'none',
                       padding: '0.4rem 0.8rem',
                       borderRadius: 'var(--radius-sm)',
-                      cursor: 'pointer',
+                      cursor: processingIds.has(notif.id) ? 'not-allowed' : 'pointer',
                       fontSize: '0.8rem',
                       fontWeight: 'bold',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.2rem'
+                      gap: '0.2rem',
+                      opacity: processingIds.has(notif.id) ? 0.6 : 1
                     }}
                   >
                     <Check size={14} /> Accept
                   </button>
                   <button 
-                    onClick={() => handleDeclineNotification(notif)}
+                    disabled={processingIds.has(notif.id)}
+                    onClick={() => handleDeclineClick(notif)}
                     style={{
                       background: 'rgba(239, 71, 111, 0.1)',
                       color: 'var(--danger)',
                       border: '1px solid var(--danger)',
                       padding: '0.4rem 0.8rem',
                       borderRadius: 'var(--radius-sm)',
-                      cursor: 'pointer',
+                      cursor: processingIds.has(notif.id) ? 'not-allowed' : 'pointer',
                       fontSize: '0.8rem',
                       fontWeight: 'bold',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.2rem'
+                      gap: '0.2rem',
+                      opacity: processingIds.has(notif.id) ? 0.6 : 1
                     }}
                   >
                     <X size={14} /> Decline
@@ -365,15 +417,17 @@ export default function Connect() {
 
             {/* Pass Button */}
             <button 
+              disabled={isProcessing}
               onClick={() => handleAction(currentUser, 'pass')}
               style={{
                 width: '64px', height: '64px', borderRadius: '50%',
                 background: 'white', border: '2px solid var(--danger)',
                 color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: 'var(--shadow-md)', cursor: 'pointer', transition: 'var(--transition)'
+                boxShadow: 'var(--shadow-md)', cursor: isProcessing ? 'not-allowed' : 'pointer', transition: 'var(--transition)',
+                opacity: isProcessing ? 0.6 : 1
               }}
-              onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
-              onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+              onMouseOver={e => { if (!isProcessing) e.currentTarget.style.transform = 'scale(1.1)'; }}
+              onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; }}
               title="Pass"
             >
               <X size={32} />
@@ -381,15 +435,17 @@ export default function Connect() {
             
             {/* Accept Button */}
             <button 
+              disabled={isProcessing}
               onClick={() => handleAction(currentUser, 'accept')}
               style={{
                 width: '64px', height: '64px', borderRadius: '50%',
                 background: 'var(--success)', border: 'none',
                 color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: 'var(--shadow-md)', cursor: 'pointer', transition: 'var(--transition)'
+                boxShadow: 'var(--shadow-md)', cursor: isProcessing ? 'not-allowed' : 'pointer', transition: 'var(--transition)',
+                opacity: isProcessing ? 0.6 : 1
               }}
-              onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
-              onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+              onMouseOver={e => { if (!isProcessing) e.currentTarget.style.transform = 'scale(1.1)'; }}
+              onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; }}
               title="Connect"
             >
               <Check size={32} />

@@ -9,6 +9,8 @@ export default function Feed() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [toast, setToast] = useState(null);
+  const [sendingTripIds, setSendingTripIds] = useState(new Set());
+  const [posting, setPosting] = useState(false);
   
   const filters = ['All', 'Adventure', 'Culture', 'Relaxation', 'Hiking'];
 
@@ -21,6 +23,8 @@ export default function Feed() {
 
   const handlePostTrip = async (e) => {
     e.preventDefault();
+    if (posting) return;
+    setPosting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -99,10 +103,19 @@ export default function Feed() {
     } catch (err) {
       console.error("Post trip exception:", err);
       showToast("Something went wrong.", "error");
+    } finally {
+      setPosting(false);
     }
   };
 
-  const handleRequestToJoin = (trip) => {
+  const handleRequestToJoin = async (trip) => {
+    if (sendingTripIds.has(trip.id)) return;
+    setSendingTripIds(prev => {
+      const next = new Set(prev);
+      next.add(trip.id);
+      return next;
+    });
+
     const hostEmail = trip.host?.email;
     const hostName = trip.host?.name || "Host";
 
@@ -110,49 +123,62 @@ export default function Feed() {
     const isSupabaseSender = currentUserId && typeof currentUserId === 'string' && currentUserId.length > 20;
     const hostId = trip.host?.id;
 
-    if (isSupabaseTrip && isSupabaseSender && hostId) {
-      supabase
-        .from('notifications')
-        .insert({
-          type: 'join_request',
-          sender_id: currentUserId,
-          receiver_id: hostId,
-          trip_id: trip.id,
-          status: 'pending',
+    try {
+      if (isSupabaseTrip && isSupabaseSender && hostId) {
+        const { error } = await supabase
+          .from('notifications')
+          .insert({
+            type: 'join_request',
+            sender_id: currentUserId,
+            receiver_id: hostId,
+            trip_id: trip.id,
+            status: 'pending',
+            read: false
+          });
+        if (error) {
+          console.error("Error inserting join_request in Supabase:", error);
+          setSendingTripIds(prev => {
+            const next = new Set(prev);
+            next.delete(trip.id);
+            return next;
+          });
+          return;
+        } else {
+          await fetchSupabaseNotifications();
+        }
+      } else {
+        const newRequest = {
+          id: `req-${Date.now()}`,
+          type: "join_request",
+          receiverEmail: hostEmail,
+          sender: {
+            name: userProfile.name,
+            email: currentUserEmail,
+            avatar: userProfile.avatar,
+            location: "Local Traveler",
+            style: userProfile.styles?.[0] || "Explorer"
+          },
+          trip: {
+            id: trip.id,
+            destination: trip.destination,
+            hostEmail: hostEmail
+          },
+          status: "pending",
+          timestamp: "Just now",
           read: false
-        })
-        .then(({ error }) => {
-          if (error) {
-            console.error("Error inserting join_request in Supabase:", error);
-          } else {
-            fetchSupabaseNotifications();
-          }
-        });
-    } else {
-      const newRequest = {
-        id: `req-${Date.now()}`,
-        type: "join_request",
-        receiverEmail: hostEmail,
-        sender: {
-          name: userProfile.name,
-          email: currentUserEmail,
-          avatar: userProfile.avatar,
-          location: "Local Traveler",
-          style: userProfile.styles?.[0] || "Explorer"
-        },
-        trip: {
-          id: trip.id,
-          destination: trip.destination,
-          hostEmail: hostEmail
-        },
-        status: "pending",
-        timestamp: "Just now",
-        read: false
-      };
+        };
 
-      setNotifications(prev => [newRequest, ...prev]);
+        setNotifications(prev => [newRequest, ...prev]);
+      }
+      showToast(`Join request sent to ${hostName}!`, 'info');
+    } catch (e) {
+      console.error(e);
+      setSendingTripIds(prev => {
+        const next = new Set(prev);
+        next.delete(trip.id);
+        return next;
+      });
     }
-    showToast(`Join request sent to ${hostName}!`, 'info');
   };
 
   const getRequestStatus = (tripId) => {
@@ -336,6 +362,7 @@ export default function Feed() {
                     ) : (
                       <button 
                         className="btn btn-primary" 
+                        disabled={sendingTripIds.has(trip.id)}
                         onClick={() => handleRequestToJoin(trip)}
                         style={{ 
                           width: '100%', 
@@ -343,11 +370,13 @@ export default function Feed() {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '0.5rem'
+                          gap: '0.5rem',
+                          opacity: sendingTripIds.has(trip.id) ? 0.6 : 1,
+                          cursor: sendingTripIds.has(trip.id) ? 'not-allowed' : 'pointer'
                         }}
                       >
                         <UserPlus size={16} />
-                        Request to Join
+                        {sendingTripIds.has(trip.id) ? 'Sending...' : 'Request to Join'}
                       </button>
                     )}
                   </div>
@@ -464,8 +493,18 @@ export default function Feed() {
               ></textarea>
             </div>
             
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '1rem' }}>
-              Publish Trip
+            <button 
+              type="submit" 
+              className="btn btn-primary" 
+              disabled={posting}
+              style={{ 
+                width: '100%', 
+                padding: '1rem',
+                opacity: posting ? 0.6 : 1,
+                cursor: posting ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {posting ? 'Publishing...' : 'Publish Trip'}
             </button>
           </form>
         </div>

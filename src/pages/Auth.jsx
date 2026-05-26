@@ -8,6 +8,7 @@ export default function Auth() {
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'register' | 'forgot'
   const [formData, setFormData] = useState({ name: '', email: '', password: '', gender: '', dob: '' });
   const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const switchMode = (mode) => {
     setAuthMode(mode);
@@ -17,123 +18,132 @@ export default function Auth() {
 
   const handleAuth = async (e) => {
     e.preventDefault();
+    if (loading) return;
+    setLoading(true);
     setErrorMsg('');
 
-    if (authMode === 'forgot') {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(formData.email.trim());
-      if (resetError) {
-        setErrorMsg(resetError.message);
-      } else {
-        alert("Password reset link sent to your email!");
-        switchMode('login');
-      }
-      return;
-    }
-
-    if (authMode === 'register') {
-      if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.gender || !formData.dob) {
-        setErrorMsg('All fields are required.');
-        return;
-      }
-
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email.trim(),
-        password: formData.password,
-        options: {
-          data: {
-            name: formData.name.trim(),
-            gender: formData.gender,
-            dob: formData.dob
-          }
+    try {
+      if (authMode === 'forgot') {
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(formData.email.trim());
+        if (resetError) {
+          setErrorMsg(resetError.message);
+        } else {
+          alert("Password reset link sent to your email!");
+          switchMode('login');
         }
-      });
-
-      if (signUpError) {
-        setErrorMsg(signUpError.message);
         return;
       }
 
-      const defaultAvatars = {
-        Male: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-        Female: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-        "Non-binary": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-        Other: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
-      };
+      if (authMode === 'register') {
+        if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.gender || !formData.dob) {
+          setErrorMsg('All fields are required.');
+          return;
+        }
 
-      const userProfileData = {
-        name: formData.name.trim(),
-        bio: "Tell us about yourself! Click 'Edit Profile' to add your bio, tagline, and travel styles.",
-        styles: ["Adventurer"],
-        avatar: defaultAvatars[formData.gender] || defaultAvatars.Male,
-        title: "New Traveler",
-        gender: formData.gender,
-        dob: formData.dob
-      };
-
-      try {
-        await supabase.from('profiles').upsert({
-          id: signUpData.user.id,
-          email: signUpData.user.email,
-          ...userProfileData
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: formData.email.trim(),
+          password: formData.password,
+          options: {
+            data: {
+              name: formData.name.trim(),
+              gender: formData.gender,
+              dob: formData.dob
+            }
+          }
         });
-      } catch (err) {
-        console.error("Profile upsert failed (handled by DB trigger):", err);
-      }
 
-      if (!signUpData.session) {
-        alert("Registration successful! A confirmation email has been sent. Please verify your email and then sign in.");
-        switchMode('login');
-      } else {
-        setUserProfile(userProfileData);
-        setCurrentUserEmail(signUpData.user.email);
-        setCurrentUserId(signUpData.user.id);
+        if (signUpError) {
+          setErrorMsg(signUpError.message);
+          return;
+        }
+
+        const defaultAvatars = {
+          Male: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+          Female: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+          "Non-binary": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+          Other: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
+        };
+
+        const userProfileData = {
+          name: formData.name.trim(),
+          bio: "Tell us about yourself! Click 'Edit Profile' to add your bio, tagline, and travel styles.",
+          styles: ["Adventurer"],
+          avatar: defaultAvatars[formData.gender] || defaultAvatars.Male,
+          title: "New Traveler",
+          gender: formData.gender,
+          dob: formData.dob
+        };
+
+        try {
+          await supabase.from('profiles').upsert({
+            id: signUpData.user.id,
+            email: signUpData.user.email,
+            ...userProfileData
+          });
+        } catch (err) {
+          console.error("Profile upsert failed (handled by DB trigger):", err);
+        }
+
+        if (!signUpData.session) {
+          alert("Registration successful! A confirmation email has been sent. Please verify your email and then sign in.");
+          switchMode('login');
+        } else {
+          setUserProfile(userProfileData);
+          setCurrentUserEmail(signUpData.user.email);
+          setCurrentUserId(signUpData.user.id);
+          setIsAuthenticated(true);
+        }
+      } else if (authMode === 'login') {
+        if (!formData.email.trim() || !formData.password.trim()) {
+          setErrorMsg('Email and password are required.');
+          return;
+        }
+
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: formData.email.trim(),
+          password: formData.password
+        });
+
+        if (signInError) {
+          setErrorMsg(signInError.message);
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', signInData.user.id)
+          .single();
+
+        if (profile) {
+          setUserProfile({
+            name: profile.name,
+            bio: profile.bio || "Tell us about yourself!",
+            styles: profile.styles || [],
+            avatar: profile.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+            title: profile.title || "Traveler",
+            gender: profile.gender,
+            dob: profile.dob
+          });
+        } else {
+          setUserProfile({
+            name: signInData.user.email,
+            bio: "Tell us about yourself!",
+            styles: ["Adventurer"],
+            avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+            title: "Traveler"
+          });
+        }
+
+        setCurrentUserEmail(signInData.user.email);
+        setCurrentUserId(signInData.user.id);
         setIsAuthenticated(true);
       }
-    } else if (authMode === 'login') {
-      if (!formData.email.trim() || !formData.password.trim()) {
-        setErrorMsg('Email and password are required.');
-        return;
-      }
-
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: formData.email.trim(),
-        password: formData.password
-      });
-
-      if (signInError) {
-        setErrorMsg(signInError.message);
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', signInData.user.id)
-        .single();
-
-      if (profile) {
-        setUserProfile({
-          name: profile.name,
-          bio: profile.bio || "Tell us about yourself!",
-          styles: profile.styles || [],
-          avatar: profile.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-          title: profile.title || "Traveler",
-          gender: profile.gender,
-          dob: profile.dob
-        });
-      } else {
-        setUserProfile({
-          name: signInData.user.email,
-          bio: "Tell us about yourself!",
-          styles: ["Adventurer"],
-          avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-          title: "Traveler"
-        });
-      }
-
-      setCurrentUserEmail(signInData.user.email);
-      setCurrentUserId(signInData.user.id);
-      setIsAuthenticated(true);
+    } catch (e) {
+      console.error(e);
+      setErrorMsg("An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -280,10 +290,26 @@ export default function Auth() {
               </div>
             )}
 
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '1rem', marginTop: '1rem', fontSize: '1.1rem' }}>
-              {authMode === 'login' && 'Sign In'}
-              {authMode === 'register' && 'Sign Up'}
-              {authMode === 'forgot' && 'Send Reset Link'}
+             <button 
+              type="submit" 
+              className="btn btn-primary" 
+              disabled={loading}
+              style={{ 
+                width: '100%', 
+                padding: '1rem', 
+                marginTop: '1rem', 
+                fontSize: '1.1rem',
+                opacity: loading ? 0.6 : 1,
+                cursor: loading ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {loading ? 'Processing...' : (
+                <>
+                  {authMode === 'login' && 'Sign In'}
+                  {authMode === 'register' && 'Sign Up'}
+                  {authMode === 'forgot' && 'Send Reset Link'}
+                </>
+              )}
             </button>
           </form>
 

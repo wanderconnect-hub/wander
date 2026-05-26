@@ -20,6 +20,7 @@ export default function Search() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [sendingIds, setSendingIds] = useState(new Set());
+  const [acceptingIds, setAcceptingIds] = useState(new Set());
   
   // Custom mock database for searchable travelers (including predefined buddies & mock Connect profiles)
   const allSearchablePeopleStatic = [
@@ -423,20 +424,38 @@ export default function Search() {
                       Request Pending
                     </button>
                   ) : status === 'incoming' ? (
-                    <button 
-                      onClick={() => {
-                        const matchUser = (registeredUsers || []).find(u => u.email && person.email && u.email.toLowerCase() === person.email.toLowerCase());
-                        const incomingNotif = (notifications || []).find(n => {
-                          if (n.type !== 'connect_request' || n.status !== 'pending') return false;
-                          const isSupabaseNotif = n.senderId && n.receiverId;
-                          if (isSupabaseNotif) {
-                            return n.senderId === matchUser?.id && n.receiverId === currentUserId;
-                          } else {
-                            return n.sender?.email?.toLowerCase() === person.email?.toLowerCase() && 
-                                   n.receiverEmail?.toLowerCase() === currentUserEmail?.toLowerCase();
-                          }
+                     <button 
+                      disabled={acceptingIds.has(person.id)}
+                      onClick={async () => {
+                        if (acceptingIds.has(person.id)) return;
+                        setAcceptingIds(prev => {
+                          const next = new Set(prev);
+                          next.add(person.id);
+                          return next;
                         });
-                        if (incomingNotif) handleAcceptNotification(incomingNotif);
+                        try {
+                          const matchUser = (registeredUsers || []).find(u => u.email && person.email && u.email.toLowerCase() === person.email.toLowerCase());
+                          const incomingNotif = (notifications || []).find(n => {
+                            if (n.type !== 'connect_request' || n.status !== 'pending') return false;
+                            const isSupabaseNotif = n.senderId && n.receiverId;
+                            if (isSupabaseNotif) {
+                              return n.senderId === matchUser?.id && n.receiverId === currentUserId;
+                            } else {
+                              return n.sender?.email?.toLowerCase() === person.email?.toLowerCase() && 
+                                     n.receiverEmail?.toLowerCase() === currentUserEmail?.toLowerCase();
+                            }
+                          });
+                          if (incomingNotif) {
+                            await handleAcceptNotification(incomingNotif);
+                          }
+                        } catch (e) {
+                          console.error(e);
+                          setAcceptingIds(prev => {
+                            const next = new Set(prev);
+                            next.delete(person.id);
+                            return next;
+                          });
+                        }
                       }}
                       style={{
                         background: 'var(--success)',
@@ -446,10 +465,11 @@ export default function Search() {
                         borderRadius: 'var(--radius-full)',
                         fontSize: '0.9rem',
                         fontWeight: '600',
-                        cursor: 'pointer'
+                        cursor: acceptingIds.has(person.id) ? 'not-allowed' : 'pointer',
+                        opacity: acceptingIds.has(person.id) ? 0.6 : 1
                       }}
                     >
-                      Accept Request
+                      {acceptingIds.has(person.id) ? 'Accepting...' : 'Accept Request'}
                     </button>
                   ) : (
                     <button 
