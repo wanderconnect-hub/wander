@@ -11,19 +11,19 @@ export default function Messages() {
   const visibleChats = chats
     .filter(chat => 
       chat.participants.includes(currentUserId) || 
-      chat.participants.includes(currentUserEmail) ||
-      chat.participants.some(p => p.toLowerCase() === currentUserEmail.toLowerCase())
+      (currentUserEmail && chat.participants.includes(currentUserEmail)) ||
+      chat.participants.some(p => p && typeof p === 'string' && currentUserEmail && p.toLowerCase() === currentUserEmail.toLowerCase())
     )
     .map(chat => {
       const otherParticipant = chat.participants.find(p => 
         p !== currentUserId && 
         p !== currentUserEmail && 
-        p.toLowerCase() !== currentUserEmail.toLowerCase()
+        (p && typeof p === 'string' && currentUserEmail && p.toLowerCase() !== currentUserEmail.toLowerCase())
       );
       
       const otherUser = registeredUsers.find(u => 
         u.id === otherParticipant || 
-        u.email.toLowerCase() === otherParticipant?.toLowerCase()
+        (u.email && otherParticipant && u.email.toLowerCase() === otherParticipant.toLowerCase())
       );
       
       return {
@@ -33,7 +33,7 @@ export default function Messages() {
         lastMsg: chat.messages[chat.messages.length - 1]?.text || "Start chatting!",
         messages: chat.messages.map(msg => ({
           ...msg,
-          sender: (msg.sender_id === currentUserId || (msg.senderEmail && msg.senderEmail.toLowerCase() === currentUserEmail.toLowerCase())) ? 'me' : 'them'
+          sender: (msg.sender_id === currentUserId || (msg.senderEmail && currentUserEmail && msg.senderEmail.toLowerCase() === currentUserEmail.toLowerCase())) ? 'me' : 'them'
         }))
       };
     });

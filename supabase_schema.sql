@@ -156,13 +156,17 @@ ON public.chat_participants FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can join/add participants" 
 ON public.chat_participants FOR INSERT WITH CHECK (true);
 
--- Access chats policy linked to participants
 CREATE POLICY "Allow members of chat to read chat info" 
 ON public.chats FOR SELECT 
 USING (EXISTS (
     SELECT 1 FROM public.chat_participants 
     WHERE chat_participants.chat_id = id AND chat_participants.user_id = auth.uid()
 ));
+
+CREATE POLICY "Allow authenticated users to create chats" 
+ON public.chats FOR INSERT 
+WITH CHECK (auth.uid() IS NOT NULL);
+
 
 
 -- 8. MESSAGES TABLE
