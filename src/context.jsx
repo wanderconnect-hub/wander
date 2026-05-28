@@ -631,21 +631,31 @@ export function TravelProvider({ children }) {
       const chatId = newChat.id;
 
       // 3. Add participants
-      await supabase
+      const { error: partError } = await supabase
         .from('chat_participants')
         .insert([
           { chat_id: chatId, user_id: currentUserId },
           { chat_id: chatId, user_id: otherUserId }
         ]);
 
+      if (partError) {
+        console.error("Error adding chat participants:", partError);
+        return;
+      }
+
       // 4. Send welcome message
-      await supabase
+      const { error: msgError } = await supabase
         .from('messages')
         .insert({
           chat_id: chatId,
           sender_id: currentUserId,
           text: welcomeText
         });
+
+      if (msgError) {
+        console.error("Error sending welcome message:", msgError);
+        return;
+      }
 
       fetchChatsAndMessages();
     } catch (err) {
@@ -732,6 +742,7 @@ export function TravelProvider({ children }) {
         .channel('realtime-notifications-room')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
           fetchSupabaseNotifications();
+          fetchChatsAndMessages();
         })
         .subscribe();
 

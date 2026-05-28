@@ -151,7 +151,7 @@ CREATE TABLE public.chat_participants (
 ALTER TABLE public.chat_participants ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view chats they are in" 
-ON public.chat_participants FOR SELECT USING (auth.uid() = user_id);
+ON public.chat_participants FOR SELECT USING (auth.uid() IS NOT NULL);
 
 CREATE POLICY "Users can join/add participants" 
 ON public.chat_participants FOR INSERT WITH CHECK (true);
