@@ -238,7 +238,7 @@ export default function Feed() {
       )}
 
       <div className="page-header">
-        <div>
+        <div className="page-header-title">
           <h1 className="page-title">Discover Trips</h1>
           <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Find trusted companions for your next adventure</p>
         </div>

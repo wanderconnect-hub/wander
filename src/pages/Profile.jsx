@@ -48,7 +48,7 @@ export default function Profile() {
     <div className="animate-fade-in">
       <div className="page-header">
         <h1 className="page-title">Travel Profile</h1>
-        <div>
+        <div className="page-header-actions">
           <button className="btn btn-outline" style={{ marginRight: '1rem' }}>
             <Settings size={20} />
           </button>

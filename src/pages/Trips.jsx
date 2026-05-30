@@ -246,7 +246,7 @@ export default function Trips() {
 
       {/* Page Header */}
       <div className="page-header" style={{ marginBottom: '2rem' }}>
-        <div>
+        <div className="page-header-title">
           <h1 className="page-title">My Trips</h1>
           <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Track your active plans and browse memories from past travels</p>
         </div>

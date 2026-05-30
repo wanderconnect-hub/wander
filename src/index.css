@@ -1025,15 +1025,25 @@ button {
     gap: 1rem;
   }
   
-  .page-header div {
+  .page-header-title {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .page-header-actions {
     display: flex;
     width: 100%;
     gap: 0.5rem;
   }
   
-  .page-header div .btn {
+  .page-header-actions .btn {
     flex: 1;
     margin-right: 0 !important;
+  }
+
+  .page-header > .btn {
+    width: 100%;
   }
   
   /* Messages Page Mobile Responsiveness overrides */
