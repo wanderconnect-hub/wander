@@ -218,21 +218,20 @@ export default function Feed() {
       
       {/* Visual Toast Notification Banner */}
       {toast && (
-        <div style={{
-          position: 'fixed',
-          bottom: '30px',
-          right: '30px',
-          background: toast.type === 'success' ? 'var(--success)' : toast.type === 'info' ? 'var(--secondary)' : 'var(--accent)',
-          color: 'white',
-          padding: '1rem 2rem',
-          borderRadius: 'var(--radius-md)',
-          boxShadow: 'var(--shadow-lg)',
-          zIndex: 9999,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          animation: 'fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
-        }}>
+        <div 
+          className="toast-banner"
+          style={{
+            background: toast.type === 'success' ? 'var(--success)' : toast.type === 'info' ? 'var(--secondary)' : 'var(--accent)',
+            color: 'white',
+            padding: '1rem 2rem',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: 'var(--shadow-lg)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
+          }}
+        >
           {toast.type === 'success' ? <CheckCircle size={20} /> : <Clock size={20} />}
           <span style={{ fontWeight: '600' }}>{toast.message}</span>
         </div>
