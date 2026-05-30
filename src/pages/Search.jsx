@@ -3,6 +3,7 @@ import { Search as SearchIcon, UserPlus, Check, MessageSquare, AlertCircle, MapP
 import { TravelContext } from '../context.jsx';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
+import { getFallbackAvatar } from '../utils/avatars';
 
 export default function Search() {
   const { 
@@ -123,8 +124,7 @@ export default function Search() {
       name: nameVal,
       email: emailVal,
       age: ageVal,
-      gender: u?.profile?.gender || existingMock?.gender || "Male",
-      avatar: u?.profile?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+      avatar: getFallbackAvatar(u?.profile?.gender, u?.profile?.avatar),
       location: u?.profile?.location || existingMock?.location || "Local Traveler",
       style: Array.isArray(u?.profile?.styles) ? u.profile.styles.join(', ') : u?.profile?.styles || existingMock?.style || 'Adventurer',
       bio: u?.profile?.bio || existingMock?.bio || "Hey there! I am new here, let's connect and explore together.",

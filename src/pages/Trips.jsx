@@ -2,6 +2,7 @@ import { useState, useContext } from 'react';
 import { Calendar, MapPin, CheckCircle, Clock, Award, Compass, Users, ChevronRight, Plus, Image as ImageIcon } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
 import { supabase } from '../supabase';
+import { getFallbackAvatar } from '../utils/avatars';
 
 export default function Trips() {
   const { trips, setTrips, loading, notifications, currentUserEmail, userProfile, currentUserId } = useContext(TravelContext);
@@ -195,14 +196,14 @@ export default function Trips() {
       .filter(n => n.type === 'join_request' && n.trip?.id === trip.id && n.status === 'accepted')
       .map(n => ({
         name: n.sender?.name || "Traveler",
-        avatar: n.sender?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+        avatar: getFallbackAvatar(n.sender?.gender, n.sender?.avatar),
         role: "Co-traveler"
       }));
 
     // Host buddy
     const hostBuddy = isOwnTrip ? [] : [{
       name: trip.host?.name || "Host",
-      avatar: trip.host?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+      avatar: getFallbackAvatar(trip.host?.gender, trip.host?.avatar),
       role: "Host"
     }];
 
@@ -308,7 +309,7 @@ export default function Trips() {
                 .filter(n => n.type === 'join_request' && n.trip?.id === trip.id && n.status === 'accepted')
                 .map(n => ({
                   name: n.sender?.name || "Traveler",
-                  avatar: n.sender?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+                  avatar: getFallbackAvatar(n.sender?.gender, n.sender?.avatar),
                   role: "Confirmed Companion"
                 }));
 
@@ -354,7 +355,7 @@ export default function Trips() {
                         {/* Include host */}
                         <div style={{ position: 'relative' }}>
                           <img
-                            src={trip.host?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"}
+                            src={getFallbackAvatar(trip.host?.gender, trip.host?.avatar)}
                             alt={trip.host?.name || "Host"}
                             style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid var(--primary)', objectFit: 'cover' }}
                             title={`${trip.host?.name || "Host"} (Host)`}

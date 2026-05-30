@@ -2,6 +2,7 @@ import { useState, useContext } from 'react';
 import { MapPin, Calendar, CheckCircle, Plus, Image as ImageIcon, UserPlus, Clock } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
 import { supabase } from '../supabase';
+import { getFallbackAvatar } from '../utils/avatars';
 
 export default function Feed() {
   const { userProfile, currentUserEmail, currentUserId, trips, setTrips, loading, notifications, setNotifications, setBuddies, chats, setChats, fetchSupabaseNotifications } = useContext(TravelContext);
@@ -382,7 +383,7 @@ export default function Feed() {
 
                   <div className="trip-host">
                     <div className="host-avatar-wrap">
-                      <img src={trip.host?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"} alt={trip.host?.name || "Host"} className="host-avatar" />
+                      <img src={getFallbackAvatar(trip.host?.gender, trip.host?.avatar)} alt={trip.host?.name || "Host"} className="host-avatar" />
                       {trip.host?.verified && (
                         <div className="verified-badge" title="Verified User">
                           <CheckCircle size={12} strokeWidth={3} />

@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect } from 'react';
 import { supabase } from './supabase';
+import { getFallbackAvatar } from './utils/avatars';
 
 export const TravelContext = createContext();
 
@@ -24,8 +25,12 @@ export function TravelProvider({ children }) {
       if (saved && saved !== 'undefined') {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          // Ensure buddies array is initialized for every user
-          return parsed.map(u => {
+          let migrated = false;
+          const checked = parsed.map(u => {
+            if (u.profile && typeof u.profile.avatar === 'string' && u.profile.avatar.includes('photo-1535713875002-d1d0cf377fde')) {
+              u.profile.avatar = getFallbackAvatar(u.profile.gender || 'Male', u.profile.avatar);
+              migrated = true;
+            }
             if (!u.buddies) {
               const defaultBuddies = (u.email || '').toLowerCase() === 'alex@wanderconnect.com' ? [
                 { 
@@ -36,10 +41,15 @@ export function TravelProvider({ children }) {
                   style: "Backpacker"
                 }
               ] : [];
-              return { ...u, buddies: defaultBuddies };
+              u.buddies = defaultBuddies;
+              migrated = true;
             }
             return u;
           });
+          if (migrated) {
+            localStorage.setItem('wc_registeredUsers', JSON.stringify(checked));
+          }
+          return checked;
         }
       }
     } catch (e) {
@@ -63,7 +73,7 @@ export function TravelProvider({ children }) {
           name: "Alex Chen",
           bio: "Hey! I'm Alex. I've been traveling full-time for the last 2 years. I love finding off-the-beaten-path locations, trying local street food, and hiking up to great viewpoints.",
           styles: ["Backpacking", "Photography", "Foodie", "Budget"],
-          avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+          avatar: getFallbackAvatar('Male'),
           title: "Digital Nomad & Adventure Photographer",
           gender: "Male",
           dob: "1997-04-12"
@@ -126,11 +136,23 @@ export function TravelProvider({ children }) {
   // Current User Profile
   const [userProfile, setUserProfile] = useState(() => {
     const saved = localStorage.getItem('wc_userProfile');
-    return saved ? JSON.parse(saved) : {
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed.avatar === 'string' && parsed.avatar.includes('photo-1535713875002-d1d0cf377fde')) {
+          parsed.avatar = getFallbackAvatar(parsed.gender || 'Male', parsed.avatar);
+          localStorage.setItem('wc_userProfile', JSON.stringify(parsed));
+        }
+        return parsed;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return {
       name: "Alex Chen",
       bio: "Hey! I'm Alex. I've been traveling full-time for the last 2 years. I love finding off-the-beaten-path locations, trying local street food, and hiking up to great viewpoints. I'm generally pretty easy-going and love deep conversations over a coffee or beer. Looking for travel buddies who don't mind waking up early for sunrise shots!",
       styles: ["Backpacking", "Photography", "Foodie", "Budget"],
-      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+      avatar: getFallbackAvatar('Male'),
       title: "Digital Nomad & Adventure Photographer",
       gender: "Male",
       dob: "1997-04-12"
@@ -215,7 +237,7 @@ export function TravelProvider({ children }) {
               return {
                 id: otherId,
                 name: otherProfile?.name || "Traveler",
-                avatar: otherProfile?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+                avatar: getFallbackAvatar(otherProfile?.gender, otherProfile?.avatar),
                 location: otherProfile?.location || "Delhi",
                 style: otherProfile?.styles?.[0] || "Explorer"
               };
@@ -230,7 +252,7 @@ export function TravelProvider({ children }) {
                 name: p.name,
                 bio: p.bio || "Tell us about yourself! Click 'Edit Profile' to add your bio, tagline, and travel styles.",
                 styles: p.styles || ["Adventurer"],
-                avatar: p.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+                avatar: getFallbackAvatar(p.gender, p.avatar),
                 title: p.title || "Traveler",
                 gender: p.gender || "Male",
                 dob: p.dob
@@ -326,7 +348,7 @@ export function TravelProvider({ children }) {
               id: t.host?.id || t.host_id,
               name: t.host?.name || "Traveler",
               email: t.host?.email || "",
-              avatar: t.host?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+              avatar: getFallbackAvatar(t.host?.gender, t.host?.avatar),
               verified: true
             }
           }));
@@ -553,7 +575,7 @@ export function TravelProvider({ children }) {
           id: chatId,
           participants: chatParticipants.map(p => p.user_id),
           name: otherPart?.profiles?.name || "Travel Buddy",
-          avatar: otherPart?.profiles?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+          avatar: getFallbackAvatar(otherPart?.profiles?.gender, otherPart?.profiles?.avatar),
           time: timeStr,
           unread: 0,
           active: false,
@@ -692,7 +714,7 @@ export function TravelProvider({ children }) {
               id: senderProf.id,
               name: senderProf.name || "Traveler",
               email: senderProf.email || "",
-              avatar: senderProf.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+              avatar: getFallbackAvatar(senderProf.gender, senderProf.avatar),
               location: senderProf.location || "Local Traveler",
               style: senderProf.styles?.[0] || "Explorer"
             },

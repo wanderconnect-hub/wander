@@ -1,6 +1,7 @@
 import { useState, useContext } from 'react';
 import { TravelContext } from '../context.jsx';
 import { Check, X, MapPin, Plane, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getFallbackAvatar } from '../utils/avatars';
 
 const mockSuggestions = [
   {
@@ -114,8 +115,7 @@ export default function Connect() {
       name: prof.name || u.name,
       email: u.email,
       age: ageVal,
-      gender: prof.gender || "Male",
-      avatar: prof.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+      avatar: getFallbackAvatar(prof.gender, prof.avatar),
       location: prof.location || "Delhi",
       style: prof.styles?.[0] || "Explorer",
       bio: prof.bio || "Hey there! Let's explore the world together.",

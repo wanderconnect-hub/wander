@@ -2,6 +2,7 @@ import { useContext, useState } from 'react';
 import { Shield, Map, Star, Edit3, Settings, Users, X } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
 import { supabase } from '../supabase';
+import { DEFAULT_AVATARS, getFallbackAvatar } from '../utils/avatars';
 
 export default function Profile() {
   const { buddies, userProfile, setUserProfile, currentUserEmail, currentUserId, setRegisteredUsers, calculateAge } = useContext(TravelContext);
@@ -61,7 +62,7 @@ export default function Profile() {
 
       <div className="profile-header">
         <img 
-          src={userProfile.avatar} 
+          src={getFallbackAvatar(userProfile.gender, userProfile.avatar)} 
           alt={userProfile.name} 
           className="profile-avatar"
         />
@@ -179,7 +180,7 @@ export default function Profile() {
           <form onSubmit={handleSave}>
             <div className="form-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
               <img 
-                src={editForm.avatar} 
+                src={getFallbackAvatar(editForm.gender || 'Male', editForm.avatar)} 
                 alt="Avatar Preview" 
                 style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--primary)' }} 
               />
@@ -215,18 +216,14 @@ export default function Profile() {
                   value={editForm.gender || 'Male'} 
                   onChange={e => {
                     const nextGender = e.target.value;
-                    const defaultAvatars = {
-                      Male: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-                      Female: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-                      "Non-binary": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-                      Other: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
-                    };
-                    const isUsingDefault = Object.values(defaultAvatars).includes(editForm.avatar);
+                    const isUsingDefault = Object.values(DEFAULT_AVATARS).includes(editForm.avatar) || 
+                                           // Also catch the legacy Unsplash defaults just in case
+                                           editForm.avatar.includes("unsplash.com");
                     if (isUsingDefault) {
                       setEditForm({
                         ...editForm,
                         gender: nextGender,
-                        avatar: defaultAvatars[nextGender] || defaultAvatars.Male
+                        avatar: DEFAULT_AVATARS[nextGender] || DEFAULT_AVATARS.Male
                       });
                     } else {
                       setEditForm({ ...editForm, gender: nextGender });

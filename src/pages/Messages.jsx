@@ -2,6 +2,7 @@ import { useState, useContext, useEffect, useRef } from 'react';
 import { Search, Send, MoreVertical, Phone, Video, ChevronLeft } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
 import { supabase } from '../supabase';
+import { getFallbackAvatar } from '../utils/avatars';
 
 export default function Messages() {
   const { chats, setChats, currentUserEmail, registeredUsers, currentUserId, fetchChatsAndMessages } = useContext(TravelContext);
@@ -29,7 +30,7 @@ export default function Messages() {
       return {
         ...chat,
         name: otherUser ? otherUser.profile.name : (chat.name || "Travel Buddy"),
-        avatar: otherUser ? otherUser.profile.avatar : (chat.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"),
+        avatar: otherUser ? getFallbackAvatar(otherUser.profile.gender, otherUser.profile.avatar) : getFallbackAvatar('Male', chat.avatar),
         lastMsg: chat.messages[chat.messages.length - 1]?.text || "Start chatting!",
         messages: chat.messages.map(msg => ({
           ...msg,
