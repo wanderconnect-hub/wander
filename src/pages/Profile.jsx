@@ -207,7 +207,7 @@ export default function Profile() {
               <input type="text" className="form-control" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} required />
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem' }} className="form-group">
+            <div className="form-row form-group">
               <div style={{ flex: 1 }}>
                 <label className="form-label">Gender</label>
                 <select 

@@ -248,7 +248,7 @@ button {
 /* Trip Cards */
 .trips-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 2rem;
 }
 
@@ -1137,6 +1137,19 @@ button {
   }
   .auth-mobile-logo {
     display: flex !important;
+  }
+}
+
+/* Modal Form Row Layout */
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+
+@media (max-width: 600px) {
+  .form-row {
+    flex-direction: column;
+    gap: 0;
   }
 }
 

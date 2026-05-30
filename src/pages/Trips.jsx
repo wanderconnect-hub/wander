@@ -477,7 +477,7 @@ export default function Trips() {
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem' }}>
+            <div className="form-row">
               <div className="form-group" style={{ flex: 1 }}>
                 <label className="form-label">Destination</label>
                 <input name="destination" type="text" className="form-control" placeholder="Where to?" required />
@@ -493,7 +493,7 @@ export default function Trips() {
               </div>
             </div>
             
-            <div style={{ display: 'flex', gap: '1rem' }}>
+            <div className="form-row">
               <div className="form-group" style={{ flex: 1 }}>
                 <label className="form-label">Start Date</label>
                 <input 
