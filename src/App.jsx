@@ -320,6 +320,25 @@ function App() {
                   notifOpen={notifOpen} 
                   setNotifOpen={setNotifOpen} 
                 />
+
+                {/* Backdrop overlay for mobile sidebar */}
+                {mobileOpen && (
+                  <div 
+                    className="sidebar-overlay"
+                    onClick={() => setMobileOpen(false)}
+                    style={{
+                      position: 'fixed',
+                      top: 0,
+                      left: 0,
+                      width: '100vw',
+                      height: '100vh',
+                      background: 'rgba(26, 26, 36, 0.4)',
+                      backdropFilter: 'blur(4px)',
+                      zIndex: 95,
+                      animation: 'fadeIn 0.2s ease'
+                    }}
+                  />
+                )}
                 
                 <main className="main-content">
                   <Routes>

@@ -289,16 +289,7 @@ export default function Connect() {
             {incomingRequests.map(notif => (
               <div 
                 key={notif.id}
-                className="trip-card"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  padding: '1rem',
-                  background: 'white',
-                  borderRadius: 'var(--radius-lg)',
-                  boxShadow: 'var(--shadow-sm)'
-                }}
+                className="request-card animate-fade-in"
               >
                 <img 
                   src={notif.sender.avatar} 
@@ -309,7 +300,7 @@ export default function Connect() {
                   <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 'bold' }}>{notif.sender.name}</h4>
                   <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{notif.sender.location || "Traveler"}</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div className="request-actions">
                   <button 
                     disabled={processingIds.has(notif.id)}
                     onClick={() => handleAcceptClick(notif)}

@@ -1,5 +1,5 @@
 import { useState, useContext, useEffect, useRef } from 'react';
-import { Search, Send, MoreVertical, Phone, Video } from 'lucide-react';
+import { Search, Send, MoreVertical, Phone, Video, ChevronLeft } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
 import { supabase } from '../supabase';
 
@@ -40,6 +40,7 @@ export default function Messages() {
 
   const [activeChat, setActiveChat] = useState(visibleChats[0]?.id || null);
   const [message, setMessage] = useState('');
+  const [mobileShowChat, setMobileShowChat] = useState(false);
 
   // Fetch latest chats and messages from Supabase on mount
   useEffect(() => {
@@ -62,6 +63,7 @@ export default function Messages() {
 
   const handleChatSelect = (id) => {
     setActiveChat(id);
+    setMobileShowChat(true);
     setChats(chats.map(chat => 
       chat.id === id ? { ...chat, unread: 0 } : chat
     ));
@@ -118,7 +120,7 @@ export default function Messages() {
       
       <div className="chat-container">
         {/* Sidebar (Chat List) */}
-        <div className="chat-sidebar">
+        <div className={`chat-sidebar ${mobileShowChat ? 'hidden-mobile' : ''}`}>
           <div className="chat-sidebar-header">
             <div className="chat-search">
               <Search size={18} />
@@ -169,9 +171,26 @@ export default function Messages() {
 
         {/* Main Chat Area */}
         {activeChatData ? (
-          <div className="chat-main">
+          <div className={`chat-main ${mobileShowChat ? 'active-mobile' : ''}`}>
             <div className="chat-header">
               <div className="chat-header-user">
+                <button 
+                  className="mobile-back-btn"
+                  onClick={() => setMobileShowChat(false)}
+                  style={{ 
+                    display: 'none', 
+                    marginRight: '0.75rem', 
+                    color: 'var(--text-main)', 
+                    cursor: 'pointer',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '4px',
+                    borderRadius: '50%',
+                    background: 'var(--background)'
+                  }}
+                >
+                  <ChevronLeft size={24} />
+                </button>
                 <img src={activeChatData.avatar} alt="User" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
                 <div>
                   <h4 style={{ fontSize: '1.1rem' }}>{activeChatData.name}</h4>

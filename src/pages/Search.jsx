@@ -332,17 +332,7 @@ export default function Search() {
             return (
               <div 
                 key={person.id} 
-                className="trip-card"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'row',
-                  gap: '1.5rem',
-                  padding: '1.5rem',
-                  alignItems: 'center',
-                  background: 'white',
-                  borderRadius: 'var(--radius-lg)',
-                  boxShadow: 'var(--shadow-sm)'
-                }}
+                className="search-card animate-fade-in"
               >
                 {/* Profile Photo */}
                 <div style={{ position: 'relative' }}>
@@ -393,7 +383,7 @@ export default function Search() {
                 </div>
 
                 {/* Connection Request Actions */}
-                <div>
+                <div className="search-card-actions">
                   {status === 'connected' ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'stretch' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: 'var(--success)', fontSize: '0.85rem', fontWeight: 'bold', justifyContent: 'center' }}>
