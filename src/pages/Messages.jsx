@@ -41,6 +41,11 @@ export default function Messages() {
   const [activeChat, setActiveChat] = useState(visibleChats[0]?.id || null);
   const [message, setMessage] = useState('');
 
+  // Fetch latest chats and messages from Supabase on mount
+  useEffect(() => {
+    fetchChatsAndMessages();
+  }, []);
+
   // Auto-select first chat if activeChat is invalid or null
   useEffect(() => {
     if (visibleChats.length > 0 && (!activeChat || !visibleChats.some(c => c.id === activeChat))) {
