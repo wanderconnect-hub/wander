@@ -158,10 +158,16 @@ ON public.chat_participants FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Allow members of chat to read chat info" 
 ON public.chats FOR SELECT 
-USING (EXISTS (
-    SELECT 1 FROM public.chat_participants 
-    WHERE chat_participants.chat_id = id AND chat_participants.user_id = auth.uid()
-));
+USING (
+    EXISTS (
+        SELECT 1 FROM public.chat_participants 
+        WHERE chat_participants.chat_id = id AND chat_participants.user_id = auth.uid()
+    ) OR 
+    NOT EXISTS (
+        SELECT 1 FROM public.chat_participants 
+        WHERE chat_participants.chat_id = id
+    )
+);
 
 CREATE POLICY "Allow authenticated users to create chats" 
 ON public.chats FOR INSERT 
