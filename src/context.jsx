@@ -246,7 +246,7 @@ export function TravelProvider({ children }) {
       // Fetch profiles, trips, and buddies in parallel
       const [profilesRes, tripsRes, buddiesRes] = await Promise.all([
         supabase.from('profiles').select('*'),
-        supabase.from('trips').select('*, host:profiles(*)'),
+        supabase.from('trips').select('*, host:profiles(*)').order('created_at', { ascending: false }),
         supabase.from('buddies').select('*')
       ]);
 
@@ -418,10 +418,12 @@ export function TravelProvider({ children }) {
           description: t.description,
           category: t.category,
           image: t.image,
+          created_at: t.created_at,
           host: {
             id: t.host?.id || t.host_id,
             name: t.host?.name || "Traveler",
             email: t.host?.email || "",
+            gender: t.host?.gender || "Male",
             avatar: getFallbackAvatar(t.host?.gender, t.host?.avatar),
             verified: true
           }
@@ -490,6 +492,8 @@ export function TravelProvider({ children }) {
           }
         ];
 
+        // Real DB trips first (already ordered newest-first by Supabase query),
+        // then append any static mock trips that don't duplicate a real one.
         const combinedTrips = [...mappedTrips];
         defaultTrips.forEach(dt => {
           if (!combinedTrips.some(ct => ct.destination.toLowerCase() === dt.destination.toLowerCase() && ct.date === dt.date)) {

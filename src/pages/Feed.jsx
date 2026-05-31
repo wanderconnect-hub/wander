@@ -88,6 +88,7 @@ export default function Feed() {
           description: data.description,
           category: data.category,
           image: data.image,
+          created_at: data.created_at || new Date().toISOString(),
           host: {
             id: data.host?.id || data.host_id || user.id,
             name: data.host?.name || userProfile.name,
