@@ -51,12 +51,14 @@ export default function Connect() {
     currentUserId, 
     buddies, 
     userProfile, 
-    connectTravelBuddies, 
+    connectTravelBuddies,
+    sendConnectRequest,
     registeredUsers, 
     calculateAge, 
     loading, 
     createSupabaseChat,
     notifications,
+    setNotifications,
     handleAcceptNotification,
     handleDeclineNotification
   } = useContext(TravelContext);
@@ -168,66 +170,63 @@ export default function Connect() {
     setIsProcessing(true);
     try {
       if (action === 'accept') {
-        // Add as travel buddies to BOTH users
-        connectTravelBuddies(currentUserEmail, user.email, {
-          id: currentUserId,
-          name: userProfile.name,
-          avatar: userProfile.avatar,
-          location: userProfile.location || "Traveler",
-          style: userProfile.styles?.[0] || "Explorer"
-        }, {
-          id: user.id,
-          name: user.name,
-          avatar: user.avatar,
-          location: user.location,
-          style: user.style
+        // Check if the other user already sent us a connect request (mutual interest)
+        const existingIncoming = (notifications || []).find(n => {
+          if (n.type !== 'connect_request' || n.status !== 'pending') return false;
+          // Is the other user the sender and current user the receiver?
+          return (n.senderId === user.id && n.receiverId === currentUserId) ||
+                 (n.sender?.email?.toLowerCase() === user.email?.toLowerCase() &&
+                  n.receiverEmail?.toLowerCase() === currentUserEmail?.toLowerCase());
         });
 
-        // Create new chat thread
-        if (user.id && typeof user.id === 'string' && user.id.length > 20) {
-          await createSupabaseChat(user.id, `Hey! We matched on WanderConnect. Let's travel together!`);
-        } else {
-          const welcomeMsg = {
-            id: Date.now(),
-            senderEmail: user.email,
-            text: `Hey! We matched on WanderConnect. Let's travel together!`
-          };
+        if (existingIncoming) {
+          // ── MUTUAL MATCH: accept their pending request → instant connection ──
+          await handleAcceptNotification(existingIncoming);
 
-          setChats(prev => {
-            const exists = prev.some(c => 
-              c.participants.includes(currentUserEmail) && c.participants.includes(user.email)
-            );
-            if (exists) return prev;
-            
-            return [{
-              id: Date.now(),
-              participants: [currentUserEmail, user.email],
-              name: user.name,
-              avatar: user.avatar,
-              time: "Just now",
-              unread: 1,
-              active: false,
-              messages: [welcomeMsg]
-            }, ...prev];
-          });
+          setMatchAlert({ ...user, isMatch: true });
+          setTimeout(() => setMatchAlert(null), 3500);
+        } else {
+          // ── SEND REQUEST: notify the other user ──
+          const registeredTarget = (registeredUsers || []).find(u =>
+            u.email && user.email && u.email.toLowerCase() === user.email.toLowerCase()
+          );
+          const targetWithId = registeredTarget || user;
+
+          if (targetWithId.id && typeof targetWithId.id === 'string' && targetWithId.id.length > 20) {
+            await sendConnectRequest(targetWithId);
+          } else {
+            // Fallback for mock users without a real UUID: add a local notification
+            const localNotif = {
+              id: `mock-${Date.now()}`,
+              type: 'connect_request',
+              status: 'pending',
+              senderId: currentUserId,
+              receiverEmail: user.email,
+              sender: {
+                id: currentUserId,
+                name: userProfile.name,
+                email: currentUserEmail,
+                avatar: userProfile.avatar,
+              },
+              trip: null,
+              read: false,
+              timestamp: 'Just now',
+            };
+            setNotifications(prev => [localNotif, ...prev]);
+          }
+
+          setMatchAlert({ ...user, isMatch: false });
+          setTimeout(() => setMatchAlert(null), 3000);
         }
-        
-        // Show Match Alert
-        setMatchAlert(user);
-        setTimeout(() => {
-          setMatchAlert(null);
-        }, 3000);
       } else {
-        // For pass, add to passedUserIds
+        // Pass → skip this user
         setPassedUserIds(prev => [...prev, user.id]);
       }
 
-      // Adjust currentIndex
+      // Move to next card (keep index in bounds)
       setCurrentIndex(prev => {
         const nextLength = suggestions.length - 1;
-        if (prev >= nextLength) {
-          return Math.max(0, nextLength - 1);
-        }
+        if (prev >= nextLength) return Math.max(0, nextLength - 1);
         return prev;
       });
     } catch (e) {
@@ -364,7 +363,7 @@ export default function Connect() {
               top: '20px',
               left: '50%',
               transform: 'translateX(-50%)',
-              background: 'var(--success)',
+              background: matchAlert.isMatch ? 'var(--success)' : 'var(--primary)',
               color: 'white',
               padding: '1rem 2rem',
               borderRadius: 'var(--radius-full)',
@@ -373,10 +372,13 @@ export default function Connect() {
               display: 'flex',
               alignItems: 'center',
               gap: '1rem',
-              animation: 'fadeIn 0.3s ease'
+              animation: 'fadeIn 0.3s ease',
+              whiteSpace: 'nowrap'
             }}>
               <Check size={24} />
-              <strong>It's a Match!</strong> You and {matchAlert.name} are now travel buddies!
+              {matchAlert.isMatch
+                ? <><strong>It's a Match!</strong> You and {matchAlert.name} are now travel buddies!</>
+                : <><strong>Request Sent!</strong> Waiting for {matchAlert.name} to accept.</>}
             </div>
           )}
 

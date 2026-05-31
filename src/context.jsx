@@ -1197,6 +1197,32 @@ export function TravelProvider({ children }) {
     }
   };
 
+  // Send a connect request (notification) to another user
+  const sendConnectRequest = async (targetUser) => {
+    if (!currentUserId || !targetUser?.id) return { error: 'Missing IDs' };
+    try {
+      // Insert connect_request notification for the target user
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          type: 'connect_request',
+          sender_id: currentUserId,
+          receiver_id: targetUser.id,
+          status: 'pending',
+          read: false
+        });
+      if (error) {
+        console.error('Error sending connect request:', error);
+        return { error };
+      }
+      await fetchSupabaseNotifications();
+      return { success: true };
+    } catch (err) {
+      console.error('Exception sending connect request:', err);
+      return { error: err };
+    }
+  };
+
   const handleDeclineNotification = async (notif) => {
     const isSupabaseNotif = typeof notif.id === 'string' && notif.id.includes('-');
 
@@ -1234,6 +1260,7 @@ export function TravelProvider({ children }) {
       chats,
       setChats,
       connectTravelBuddies,
+      sendConnectRequest,
       calculateAge,
       createSupabaseChat,
       fetchSupabaseNotifications,
