@@ -1,12 +1,12 @@
 import { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Calendar, CheckCircle, Plus, Image as ImageIcon, UserPlus, Clock } from 'lucide-react';
+import { MapPin, Calendar, CheckCircle, Plus, Image as ImageIcon, UserPlus, Clock, Trash2 } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
 import { supabase } from '../supabase';
 import { getFallbackAvatar } from '../utils/avatars';
 
 export default function Feed() {
-  const { userProfile, currentUserEmail, currentUserId, trips, setTrips, loading, notifications, setNotifications, setBuddies, chats, setChats, fetchSupabaseNotifications } = useContext(TravelContext);
+  const { userProfile, currentUserEmail, currentUserId, trips, setTrips, loading, notifications, setNotifications, setBuddies, chats, setChats, fetchSupabaseNotifications, deleteTrip } = useContext(TravelContext);
   const [activeFilter, setActiveFilter] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
@@ -312,21 +312,60 @@ export default function Feed() {
                   {/* Action Join Button */}
                   <div style={{ marginBottom: '1.25rem' }}>
                     {isOwnTrip ? (
-                      <span style={{ 
-                        display: 'inline-flex', 
-                        alignItems: 'center', 
-                        gap: '0.35rem', 
-                        background: 'rgba(0, 78, 137, 0.1)', 
-                        color: 'var(--secondary)', 
-                        padding: '0.5rem 1.25rem', 
-                        borderRadius: 'var(--radius-full)', 
-                        fontSize: '0.85rem',
-                        fontWeight: '700',
-                        width: '100%',
-                        justifyContent: 'center'
-                      }}>
-                        Hosted by you
-                      </span>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <span style={{ 
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          gap: '0.35rem', 
+                          background: 'rgba(0, 78, 137, 0.1)', 
+                          color: 'var(--secondary)', 
+                          padding: '0.5rem 1.25rem', 
+                          borderRadius: 'var(--radius-full)', 
+                          fontSize: '0.85rem',
+                          fontWeight: '700',
+                          flex: 1,
+                          justifyContent: 'center'
+                        }}>
+                          Hosted by you
+                        </span>
+                        <button 
+                          onClick={async () => {
+                            if (window.confirm("Are you sure you want to delete this trip?")) {
+                              const res = await deleteTrip(trip.id);
+                              if (res.success) {
+                                showToast("Trip deleted successfully.");
+                              } else {
+                                showToast("Failed to delete trip.", "error");
+                              }
+                            }
+                          }}
+                          style={{
+                            padding: '0.5rem',
+                            borderRadius: '50%',
+                            width: '38px',
+                            height: '38px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderColor: 'var(--accent)',
+                            color: 'var(--accent)',
+                            background: 'transparent',
+                            border: '1px solid var(--accent)',
+                            cursor: 'pointer'
+                          }}
+                          title="Delete Trip"
+                          onMouseOver={e => {
+                            e.currentTarget.style.background = 'var(--accent)';
+                            e.currentTarget.style.color = 'white';
+                          }}
+                          onMouseOut={e => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = 'var(--accent)';
+                          }}
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     ) : requestStatus === 'accepted' ? (
                       <span style={{ 
                         display: 'inline-flex', 

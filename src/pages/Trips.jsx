@@ -1,12 +1,12 @@
 import { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, MapPin, CheckCircle, Clock, Award, Compass, Users, ChevronRight, Plus, Image as ImageIcon } from 'lucide-react';
+import { Calendar, MapPin, CheckCircle, Clock, Award, Compass, Users, ChevronRight, Plus, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
 import { supabase } from '../supabase';
 import { getFallbackAvatar } from '../utils/avatars';
 
 export default function Trips() {
-  const { trips, setTrips, loading, notifications, currentUserEmail, userProfile, currentUserId } = useContext(TravelContext);
+  const { trips, setTrips, loading, notifications, currentUserEmail, userProfile, currentUserId, deleteTrip } = useContext(TravelContext);
   const [activeTab, setActiveTab] = useState('upcoming');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
@@ -332,16 +332,47 @@ export default function Trips() {
 
                   <div className="trip-content" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                      <span style={{
-                        fontSize: '0.75rem',
-                        background: isOwnTrip ? 'rgba(0, 78, 137, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                        color: isOwnTrip ? 'var(--secondary)' : 'var(--success)',
-                        padding: '0.25rem 0.75rem',
-                        borderRadius: 'var(--radius-full)',
-                        fontWeight: '700'
-                      }}>
-                        {isOwnTrip ? "✦ Hosting" : "✓ Approved Plan"}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{
+                          fontSize: '0.75rem',
+                          background: isOwnTrip ? 'rgba(0, 78, 137, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                          color: isOwnTrip ? 'var(--secondary)' : 'var(--success)',
+                          padding: '0.25rem 0.75rem',
+                          borderRadius: 'var(--radius-full)',
+                          fontWeight: '700'
+                        }}>
+                          {isOwnTrip ? "✦ Hosting" : "✓ Approved Plan"}
+                        </span>
+                        {isOwnTrip && (
+                          <button 
+                            onClick={async () => {
+                              if (window.confirm("Are you sure you want to delete this trip?")) {
+                                const res = await deleteTrip(trip.id);
+                                if (res.success) {
+                                  showToast("Trip deleted successfully.");
+                                } else {
+                                  showToast("Failed to delete trip.", "error");
+                                }
+                              }
+                            }}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: 'var(--accent)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '2px',
+                              borderRadius: '4px'
+                            }}
+                            title="Delete Trip"
+                            onMouseOver={e => e.currentTarget.style.color = 'red'}
+                            onMouseOut={e => e.currentTarget.style.color = 'var(--accent)'}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
                       <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '600' }}>
                         Budget: {trip.budget}
                       </span>

@@ -990,8 +990,28 @@ export function TravelProvider({ children }) {
         }
         return u;
       });
-      return updated;
     });
+  };
+
+  const deleteTrip = async (tripId) => {
+    try {
+      const isSupabaseId = typeof tripId === 'string' && tripId.includes('-');
+      if (isSupabaseId) {
+        const { error } = await supabase
+          .from('trips')
+          .delete()
+          .eq('id', tripId);
+        if (error) {
+          console.error("Error deleting trip from Supabase:", error);
+          return { error };
+        }
+      }
+      setTrips(prev => prev.filter(t => t.id !== tripId));
+      return { success: true };
+    } catch (err) {
+      console.error("Exception deleting trip:", err);
+      return { error: err };
+    }
   };
 
   const handleAcceptNotification = async (notif) => {
@@ -1267,7 +1287,8 @@ export function TravelProvider({ children }) {
       fetchSupabaseNotifications,
       fetchChatsAndMessages,
       handleAcceptNotification,
-      handleDeclineNotification
+      handleDeclineNotification,
+      deleteTrip
     }}>
       {children}
     </TravelContext.Provider>
