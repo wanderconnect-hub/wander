@@ -28,18 +28,31 @@ export default function Messages() {
         (u.email && otherParticipant && u.email.toLowerCase() === otherParticipant.toLowerCase())
       );
       
+      const lastMsgObj = chat.messages[chat.messages.length - 1];
+      let sortTime = 0;
+      if (lastMsgObj) {
+        if (lastMsgObj.created_at) {
+          sortTime = new Date(lastMsgObj.created_at).getTime();
+        } else if (typeof lastMsgObj.id === 'number') {
+          // Fallback for mock message IDs (e.g. 105, 203, 302 or Date.now())
+          sortTime = lastMsgObj.id > 1000000000000 ? lastMsgObj.id : lastMsgObj.id * 1000;
+        }
+      }
+      
       return {
         ...chat,
         participantId: otherParticipant,
         name: otherUser ? otherUser.profile.name : (chat.name || "Travel Buddy"),
         avatar: otherUser ? getFallbackAvatar(otherUser.profile.gender, otherUser.profile.avatar) : getFallbackAvatar('Male', chat.avatar),
-        lastMsg: chat.messages[chat.messages.length - 1]?.text || "Start chatting!",
+        lastMsg: lastMsgObj?.text || "Start chatting!",
+        lastMessageTime: sortTime,
         messages: chat.messages.map(msg => ({
           ...msg,
           sender: (msg.sender_id === currentUserId || (msg.senderEmail && currentUserEmail && msg.senderEmail.toLowerCase() === currentUserEmail.toLowerCase())) ? 'me' : 'them'
         }))
       };
-    });
+    })
+    .sort((a, b) => b.lastMessageTime - a.lastMessageTime);
 
   const location = useLocation();
   const selectUserEmail = location.state?.selectUserEmail;

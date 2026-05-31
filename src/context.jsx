@@ -739,7 +739,8 @@ export function TravelProvider({ children }) {
               id: m.id,
               senderEmail: senderEmail,
               sender_id: m.sender_id,
-              text: m.text
+              text: m.text,
+              created_at: m.created_at
             };
           })
         };
