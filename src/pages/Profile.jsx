@@ -186,17 +186,22 @@ export default function Profile() {
               />
               <label className="btn btn-outline" style={{ cursor: 'pointer', padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
                 Change Picture
-                <input 
+                 <input 
                   type="file" 
                   accept="image/*" 
                   style={{ display: 'none' }} 
                   onChange={(e) => {
                     if (e.target.files && e.target.files[0]) {
+                      const file = e.target.files[0];
+                      if (file.size > 1024 * 1024) {
+                        alert("Please select an image file under 1MB to avoid database/storage size issues.");
+                        return;
+                      }
                       const reader = new FileReader();
                       reader.onloadend = () => {
                         setEditForm({ ...editForm, avatar: reader.result });
                       };
-                      reader.readAsDataURL(e.target.files[0]);
+                      reader.readAsDataURL(file);
                     }
                   }} 
                 />
@@ -218,7 +223,7 @@ export default function Profile() {
                     const nextGender = e.target.value;
                     const isUsingDefault = Object.values(DEFAULT_AVATARS).includes(editForm.avatar) || 
                                            // Also catch the legacy Unsplash defaults just in case
-                                           editForm.avatar.includes("unsplash.com");
+                                           (typeof editForm.avatar === 'string' && editForm.avatar.includes("unsplash.com"));
                     if (isUsingDefault) {
                       setEditForm({
                         ...editForm,

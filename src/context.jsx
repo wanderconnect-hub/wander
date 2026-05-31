@@ -47,7 +47,11 @@ export function TravelProvider({ children }) {
             return u;
           });
           if (migrated) {
-            localStorage.setItem('wc_registeredUsers', JSON.stringify(checked));
+            try {
+              localStorage.setItem('wc_registeredUsers', JSON.stringify(checked));
+            } catch (err) {
+              console.error("Failed to save wc_registeredUsers to localStorage:", err);
+            }
           }
           return checked;
         }
@@ -160,32 +164,60 @@ export function TravelProvider({ children }) {
   });
 
   useEffect(() => {
-    localStorage.setItem('wc_userProfile', JSON.stringify(userProfile));
+    try {
+      localStorage.setItem('wc_userProfile', JSON.stringify(userProfile));
+    } catch (e) {
+      console.error("Failed to save wc_userProfile to localStorage:", e);
+    }
   }, [userProfile]);
 
   // Auth State
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('wc_isAuthenticated') === 'true';
+    try {
+      return localStorage.getItem('wc_isAuthenticated') === 'true';
+    } catch (e) {
+      return false;
+    }
   });
 
   useEffect(() => {
-    localStorage.setItem('wc_isAuthenticated', isAuthenticated);
+    try {
+      localStorage.setItem('wc_isAuthenticated', isAuthenticated);
+    } catch (e) {
+      console.error(e);
+    }
   }, [isAuthenticated]);
 
   const [currentUserEmail, setCurrentUserEmail] = useState(() => {
-    return localStorage.getItem('wc_currentUserEmail') || '';
+    try {
+      return localStorage.getItem('wc_currentUserEmail') || '';
+    } catch (e) {
+      return '';
+    }
   });
 
   useEffect(() => {
-    localStorage.setItem('wc_currentUserEmail', currentUserEmail);
+    try {
+      localStorage.setItem('wc_currentUserEmail', currentUserEmail);
+    } catch (e) {
+      console.error(e);
+    }
   }, [currentUserEmail]);
 
   const [currentUserId, setCurrentUserId] = useState(() => {
-    return localStorage.getItem('wc_currentUserId') || '';
+    try {
+      return localStorage.getItem('wc_currentUserId') || '';
+    } catch (e) {
+      return '';
+    }
   });
 
   useEffect(() => {
-    localStorage.setItem('wc_currentUserId', currentUserId);
+    try {
+      localStorage.setItem('wc_currentUserId', currentUserId);
+    } catch (e) {
+      console.error(e);
+    }
   }, [currentUserId]);
 
   // Initial travel buddies for the user (synced per registered user account)
@@ -472,7 +504,11 @@ export function TravelProvider({ children }) {
   });
 
   useEffect(() => {
-    localStorage.setItem('wc_notifications', JSON.stringify(notifications));
+    try {
+      localStorage.setItem('wc_notifications', JSON.stringify(notifications));
+    } catch (e) {
+      console.error(e);
+    }
   }, [notifications]);
 
   // Global Message Threads
@@ -520,7 +556,11 @@ export function TravelProvider({ children }) {
   });
 
   useEffect(() => {
-    localStorage.setItem('wc_chats', JSON.stringify(chats));
+    try {
+      localStorage.setItem('wc_chats', JSON.stringify(chats));
+    } catch (e) {
+      console.error(e);
+    }
   }, [chats]);
 
   const fetchChatsAndMessages = async () => {
