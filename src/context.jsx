@@ -908,7 +908,7 @@ export function TravelProvider({ children }) {
       // Subscribe to real-time messages changes to receive updates instantly
       const channel = supabase
         .channel('realtime-messages-room')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
           fetchChatsAndMessages();
         })
         .subscribe();

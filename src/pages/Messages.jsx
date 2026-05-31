@@ -48,9 +48,13 @@ export default function Messages() {
   const [message, setMessage] = useState('');
   const [mobileShowChat, setMobileShowChat] = useState(false);
 
-  // Fetch latest chats and messages from Supabase on mount
+  // Fetch latest chats and messages from Supabase on mount and poll every 3 seconds for instant updates
   useEffect(() => {
     fetchChatsAndMessages();
+    const interval = setInterval(() => {
+      fetchChatsAndMessages();
+    }, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   // Auto-select chat matching selectUserEmail/ID if passed in state, otherwise fallback to first chat
