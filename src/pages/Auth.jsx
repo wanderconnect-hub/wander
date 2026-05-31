@@ -69,13 +69,15 @@ export default function Auth() {
         };
 
         try {
-          await supabase.from('profiles').upsert({
-            id: signUpData.user.id,
+          const { error } = await supabase.from('profiles').update({
             email: signUpData.user.email,
             ...userProfileData
-          });
+          }).eq('id', signUpData.user.id);
+          if (error) {
+            console.error("Profile update failed in Auth.jsx:", error);
+          }
         } catch (err) {
-          console.error("Profile upsert failed (handled by DB trigger):", err);
+          console.error("Profile sync failed:", err);
         }
 
         if (!signUpData.session) {

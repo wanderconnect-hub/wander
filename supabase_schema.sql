@@ -27,6 +27,9 @@ ON public.profiles FOR SELECT USING (true);
 CREATE POLICY "Allow individual users to update their own profile" 
 ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
+CREATE POLICY "Allow individual users to insert their own profile" 
+ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+
 
 -- 2. AUTOMATIC PROFILE TRIGGER (ON SIGN UP)
 -- Creates a public profile entry whenever a user registers through Supabase Auth

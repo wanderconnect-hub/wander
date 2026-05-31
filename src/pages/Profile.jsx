@@ -19,16 +19,23 @@ export default function Profile() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase.from('profiles').upsert({
-          id: user.id,
-          name: editForm.name,
-          title: editForm.title,
-          bio: editForm.bio,
-          avatar: editForm.avatar,
-          styles: editForm.styles || [],
-          gender: editForm.gender,
-          dob: editForm.dob
-        });
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            name: editForm.name,
+            title: editForm.title,
+            bio: editForm.bio,
+            avatar: editForm.avatar,
+            styles: editForm.styles || [],
+            gender: editForm.gender,
+            dob: editForm.dob
+          })
+          .eq('id', user.id);
+
+        if (error) {
+          console.error("Failed to update profile in Supabase:", error);
+          alert("Error saving profile to database: " + error.message);
+        }
       }
     } catch (err) {
       console.error("Failed to sync profile update to Supabase:", err);
