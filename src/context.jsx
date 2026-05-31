@@ -239,241 +239,306 @@ export function TravelProvider({ children }) {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let active = true;
+  const fetchTripsAndProfiles = useCallback(async (silent = false) => {
+    try {
+      if (!silent) setLoading(true);
+      
+      // Fetch profiles, trips, and buddies in parallel
+      const [profilesRes, tripsRes, buddiesRes] = await Promise.all([
+        supabase.from('profiles').select('*'),
+        supabase.from('trips').select('*, host:profiles(*)'),
+        supabase.from('buddies').select('*')
+      ]);
 
-    const fetchTripsAndProfiles = async () => {
-      try {
-        if (active) setLoading(true);
-        
-        // Fetch profiles, trips, and buddies in parallel
-        const [profilesRes, tripsRes, buddiesRes] = await Promise.all([
-          supabase.from('profiles').select('*'),
-          supabase.from('trips').select('*, host:profiles(*)'),
-          supabase.from('buddies').select('*')
-        ]);
+      const { data: profilesData, error: profilesError } = profilesRes;
+      const { data: tripsData, error: tripsError } = tripsRes;
+      const { data: buddiesData } = buddiesRes;
 
-        const { data: profilesData, error: profilesError } = profilesRes;
-        const { data: tripsData, error: tripsError } = tripsRes;
-        const { data: buddiesData } = buddiesRes;
-
-        if (profilesError) {
-          console.error("Error fetching profiles:", profilesError);
-        } else if (profilesData && active) {
-          const mappedUsers = profilesData.map(p => {
-            // Find connections where p.id is either user_id_1 or user_id_2
-            const userBuddiesRelations = buddiesData ? buddiesData.filter(b => b.user_id_1 === p.id || b.user_id_2 === p.id) : [];
-            const userBuddies = userBuddiesRelations.map(rel => {
-              const otherId = rel.user_id_1 === p.id ? rel.user_id_2 : rel.user_id_1;
-              const otherProfile = profilesData.find(op => op.id === otherId);
-              return {
-                id: otherId,
-                name: otherProfile?.name || "Traveler",
-                avatar: getFallbackAvatar(otherProfile?.gender, otherProfile?.avatar),
-                location: otherProfile?.location || "Delhi",
-                style: otherProfile?.styles?.[0] || "Explorer"
-              };
-            });
-
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+      } else if (profilesData) {
+        const mappedUsers = profilesData.map(p => {
+          // Find connections where p.id is either user_id_1 or user_id_2
+          const userBuddiesRelations = buddiesData ? buddiesData.filter(b => b.user_id_1 === p.id || b.user_id_2 === p.id) : [];
+          const userBuddies = userBuddiesRelations.map(rel => {
+            const otherId = rel.user_id_1 === p.id ? rel.user_id_2 : rel.user_id_1;
+            const otherProfile = profilesData.find(op => op.id === otherId);
             return {
-              id: p.id,
-              name: p.name,
-              email: p.email || (currentUserId && p.id === currentUserId ? currentUserEmail : `${(p.name || 'user').toLowerCase().replace(/\s+/g, '')}@wanderconnect.com`),
-              buddies: userBuddies,
-              profile: {
-                name: p.name,
-                bio: p.bio || "Tell us about yourself! Click 'Edit Profile' to add your bio, tagline, and travel styles.",
-                styles: p.styles || ["Adventurer"],
-                avatar: getFallbackAvatar(p.gender, p.avatar),
-                title: p.title || "Traveler",
-                gender: p.gender || "Male",
-                dob: p.dob
-              }
+              id: otherId,
+              name: otherProfile?.name || "Traveler",
+              avatar: getFallbackAvatar(otherProfile?.gender, otherProfile?.avatar),
+              location: otherProfile?.location || "Delhi",
+              style: otherProfile?.styles?.[0] || "Explorer"
             };
           });
 
-          const defaultUsers = [
-            {
+          return {
+            id: p.id,
+            name: p.name,
+            email: p.email || (currentUserId && p.id === currentUserId ? currentUserEmail : `${(p.name || 'user').toLowerCase().replace(/\s+/g, '')}@wanderconnect.com`),
+            buddies: userBuddies,
+            profile: {
+              name: p.name,
+              bio: p.bio || "Tell us about yourself! Click 'Edit Profile' to add your bio, tagline, and travel styles.",
+              styles: p.styles || ["Adventurer"],
+              avatar: getFallbackAvatar(p.gender, p.avatar),
+              title: p.title || "Traveler",
+              gender: p.gender || "Male",
+              dob: p.dob
+            }
+          };
+        });
+
+        const defaultUsers = [
+          {
+            name: "Alex Chen",
+            email: "alex@wanderconnect.com",
+            password: "password123",
+            buddies: [],
+            profile: {
               name: "Alex Chen",
-              email: "alex@wanderconnect.com",
-              password: "password123",
-              buddies: [],
-              profile: {
-                name: "Alex Chen",
-                bio: "Hey! I'm Alex. I've been traveling full-time for the last 2 years. I love finding off-the-beaten-path locations, trying local street food, and hiking up to great viewpoints.",
-                styles: ["Backpacking", "Photography", "Foodie", "Budget"],
-                avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-                title: "Digital Nomad & Adventure Photographer",
-                gender: "Male",
-                dob: "1997-04-12"
-              }
-            },
-            {
+              bio: "Hey! I'm Alex. I've been traveling full-time for the last 2 years. I love finding off-the-beaten-path locations, trying local street food, and hiking up to great viewpoints.",
+              styles: ["Backpacking", "Photography", "Foodie", "Budget"],
+              avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+              title: "Digital Nomad & Adventure Photographer",
+              gender: "Male",
+              dob: "1997-04-12"
+            }
+          },
+          {
+            name: "Rohan Sharma",
+            email: "rohan@wanderconnect.com",
+            password: "password123",
+            buddies: [],
+            profile: {
+              name: "Rohan Sharma",
+              bio: "Adventure enthusiast. Love trekking, skiing, and off-roading. Let's conquer the mountains!",
+              styles: ["Adventure", "Hiking", "Photography"],
+              avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80",
+              title: "Mountain Guide & Nomad",
+              gender: "Male",
+              dob: "1999-08-23"
+            }
+          },
+          {
+            name: "Priya Desai",
+            email: "priya@wanderconnect.com",
+            password: "password123",
+            buddies: [],
+            profile: {
+              name: "Priya Desai",
+              bio: "Beach lover, foodie, and yoga practitioner. Let's find the best sunset spots!",
+              styles: ["Relaxation", "Foodie", "Culture"],
+              avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80",
+              title: "Beach Bum & Yoga Teacher",
+              gender: "Female",
+              dob: "1998-11-05"
+            }
+          },
+          {
+            name: "Arjun Verma",
+            email: "arjun@wanderconnect.com",
+            password: "password123",
+            buddies: [],
+            profile: {
+              name: "Arjun Verma",
+              bio: "Road trip fanatic. I love long drives, local histories, and camping under the stars.",
+              styles: ["Hiking", "Culture", "Adventure"],
+              avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80",
+              title: "Roadtripper & Historian",
+              gender: "Male",
+              dob: "1995-01-15"
+            }
+          }
+        ];
+
+        const combined = [...mappedUsers];
+        defaultUsers.forEach(du => {
+          if (!combined.some(c => c.email && du.email && c.email.toLowerCase() === du.email.toLowerCase())) {
+            combined.push(du);
+          }
+        });
+
+        setRegisteredUsers(combined);
+      }
+
+      if (tripsError) {
+        console.error("Error fetching trips:", tripsError);
+      } else if (tripsData) {
+        const mappedTrips = tripsData.map(t => ({
+          id: t.id,
+          destination: t.destination,
+          date: t.date,
+          budget: t.budget,
+          description: t.description,
+          category: t.category,
+          image: t.image,
+          host: {
+            id: t.host?.id || t.host_id,
+            name: t.host?.name || "Traveler",
+            email: t.host?.email || "",
+            avatar: getFallbackAvatar(t.host?.gender, t.host?.avatar),
+            verified: true
+          }
+        }));
+
+        const defaultTrips = [
+          {
+            id: 1,
+            destination: "Manali, Himachal Pradesh",
+            date: "Oct 15 - Oct 25",
+            budget: "₹15,000",
+            description: "Looking for 2 adventure seekers to explore Rohtang Pass, cafe hop in Old Manali, and do the Kheerganga trek.",
+            image: "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+            category: "Adventure",
+            host: {
               name: "Rohan Sharma",
               email: "rohan@wanderconnect.com",
-              password: "password123",
-              buddies: [],
-              profile: {
-                name: "Rohan Sharma",
-                bio: "Adventure enthusiast. Love trekking, skiing, and off-roading. Let's conquer the mountains!",
-                styles: ["Adventure", "Hiking", "Photography"],
-                avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80",
-                title: "Mountain Guide & Nomad",
-                gender: "Male",
-                dob: "1999-08-23"
-              }
-            },
-            {
+              verified: true,
+              avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
+            }
+          },
+          {
+            id: 2,
+            destination: "South Goa Beaches",
+            date: "Nov 05 - Nov 12",
+            budget: "₹8,000",
+            description: "Cozy beachside workstation, exploring hidden waterfalls, and sunset kayaking. Relaxed vibe, remote work friendly.",
+            image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+            category: "Relaxation",
+            host: {
               name: "Priya Desai",
               email: "priya@wanderconnect.com",
-              password: "password123",
-              buddies: [],
-              profile: {
-                name: "Priya Desai",
-                bio: "Beach lover, foodie, and yoga practitioner. Let's find the best sunset spots!",
-                styles: ["Relaxation", "Foodie", "Culture"],
-                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80",
-                title: "Beach Bum & Yoga Teacher",
-                gender: "Female",
-                dob: "1998-11-05"
-              }
-            },
-            {
+              verified: true,
+              avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
+            }
+          },
+          {
+            id: 3,
+            destination: "Spiti Valley, Himachal",
+            date: "Sep 20 - Sep 30",
+            budget: "₹22,000",
+            description: "Epic road trip through Spiti. Need physically fit companions who love high altitudes and starry nights.",
+            image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+            category: "Hiking",
+            host: {
               name: "Arjun Verma",
               email: "arjun@wanderconnect.com",
-              password: "password123",
-              buddies: [],
-              profile: {
-                name: "Arjun Verma",
-                bio: "Road trip fanatic. I love long drives, local histories, and camping under the stars.",
-                styles: ["Hiking", "Culture", "Adventure"],
-                avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80",
-                title: "Roadtripper & Historian",
-                gender: "Male",
-                dob: "1995-01-15"
-              }
+              verified: false,
+              avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
             }
-          ];
-
-          const combined = [...mappedUsers];
-          defaultUsers.forEach(du => {
-            if (!combined.some(c => c.email && du.email && c.email.toLowerCase() === du.email.toLowerCase())) {
-              combined.push(du);
-            }
-          });
-
-          setRegisteredUsers(combined);
-        }
-
-        if (tripsError) {
-          console.error("Error fetching trips:", tripsError);
-        } else if (tripsData && active) {
-          const mappedTrips = tripsData.map(t => ({
-            id: t.id,
-            destination: t.destination,
-            date: t.date,
-            budget: t.budget,
-            description: t.description,
-            category: t.category,
-            image: t.image,
+          },
+          {
+            id: 4,
+            destination: "Varkala Beach, Kerala",
+            date: "Dec 10 - Dec 18",
+            budget: "₹12,000",
+            description: "Heading down to Kerala for surfing, sunset cafes, and chilling by the cliff. Looking for surf enthusiasts and beach lovers!",
+            image: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+            category: "Relaxation",
             host: {
-              id: t.host?.id || t.host_id,
-              name: t.host?.name || "Traveler",
-              email: t.host?.email || "",
-              avatar: getFallbackAvatar(t.host?.gender, t.host?.avatar),
-              verified: true
+              name: "Alex Chen",
+              email: "alex@wanderconnect.com",
+              verified: true,
+              avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
             }
-          }));
+          }
+        ];
 
-          const defaultTrips = [
-            {
-              id: 1,
-              destination: "Manali, Himachal Pradesh",
-              date: "Oct 15 - Oct 25",
-              budget: "₹15,000",
-              description: "Looking for 2 adventure seekers to explore Rohtang Pass, cafe hop in Old Manali, and do the Kheerganga trek.",
-              image: "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-              category: "Adventure",
-              host: {
-                name: "Rohan Sharma",
-                email: "rohan@wanderconnect.com",
-                verified: true,
-                avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
-              }
-            },
-            {
-              id: 2,
-              destination: "South Goa Beaches",
-              date: "Nov 05 - Nov 12",
-              budget: "₹8,000",
-              description: "Cozy beachside workstation, exploring hidden waterfalls, and sunset kayaking. Relaxed vibe, remote work friendly.",
-              image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-              category: "Relaxation",
-              host: {
-                name: "Priya Desai",
-                email: "priya@wanderconnect.com",
-                verified: true,
-                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
-              }
-            },
-            {
-              id: 3,
-              destination: "Spiti Valley, Himachal",
-              date: "Sep 20 - Sep 30",
-              budget: "₹22,000",
-              description: "Epic road trip through Spiti. Need physically fit companions who love high altitudes and starry nights.",
-              image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-              category: "Hiking",
-              host: {
-                name: "Arjun Verma",
-                email: "arjun@wanderconnect.com",
-                verified: false,
-                avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
-              }
-            },
-            {
-              id: 4,
-              destination: "Varkala Beach, Kerala",
-              date: "Dec 10 - Dec 18",
-              budget: "₹12,000",
-              description: "Heading down to Kerala for surfing, sunset cafes, and chilling by the cliff. Looking for surf enthusiasts and beach lovers!",
-              image: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-              category: "Relaxation",
-              host: {
-                name: "Alex Chen",
-                email: "alex@wanderconnect.com",
-                verified: true,
-                avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
-              }
-            }
-          ];
+        const combinedTrips = [...mappedTrips];
+        defaultTrips.forEach(dt => {
+          if (!combinedTrips.some(ct => ct.destination.toLowerCase() === dt.destination.toLowerCase() && ct.date === dt.date)) {
+            combinedTrips.push(dt);
+          }
+        });
 
-          const combinedTrips = [...mappedTrips];
-          defaultTrips.forEach(dt => {
-            if (!combinedTrips.some(ct => ct.destination.toLowerCase() === dt.destination.toLowerCase() && ct.date === dt.date)) {
-              combinedTrips.push(dt);
-            }
-          });
-
-          setTrips(combinedTrips);
-        }
-      } catch (err) {
-        console.error("Failed fetching trips and profiles:", err);
-      } finally {
-        if (active) setLoading(false);
+        setTrips(combinedTrips);
       }
-    };
+    } catch (err) {
+      console.error("Failed fetching trips and profiles:", err);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [currentUserId, currentUserEmail, isAuthenticated]);
 
+  useEffect(() => {
     if (isAuthenticated) {
       fetchTripsAndProfiles();
     } else {
       setLoading(false);
     }
+  }, [isAuthenticated, fetchTripsAndProfiles]);
 
-    return () => {
-      active = false;
-    };
-  }, [isAuthenticated, currentUserEmail, currentUserId]);
+  // Periodic silent polling to fetch fresh profiles and trips from the DB every 10 seconds
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const interval = setInterval(() => {
+      fetchTripsAndProfiles(true);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, fetchTripsAndProfiles]);
+
+  // Reactive Sync: Map latest user avatar and name updates from registeredUsers onto existing trips
+  useEffect(() => {
+    setTrips(prevTrips => {
+      let changed = false;
+      const updated = prevTrips.map(t => {
+        if (!t.host) return t;
+        const hostUser = registeredUsers.find(u => 
+          (t.host.id && u.id === t.host.id) || 
+          (t.host.email && u.email && u.email.toLowerCase() === t.host.email.toLowerCase())
+        );
+        if (hostUser && hostUser.profile) {
+          const latestAvatar = getFallbackAvatar(hostUser.profile.gender, hostUser.profile.avatar);
+          if (t.host.avatar !== latestAvatar || t.host.name !== hostUser.profile.name) {
+            changed = true;
+            return {
+              ...t,
+              host: {
+                ...t.host,
+                name: hostUser.profile.name || t.host.name,
+                avatar: latestAvatar,
+                gender: hostUser.profile.gender || t.host.gender
+              }
+            };
+          }
+        }
+        return t;
+      });
+      return changed ? updated : prevTrips;
+    });
+  }, [registeredUsers]);
+
+  // Reactive Sync: Map latest sender avatars from registeredUsers onto notifications
+  useEffect(() => {
+    setNotifications(prevNotifications => {
+      let changed = false;
+      const updated = prevNotifications.map(n => {
+        if (!n.sender) return n;
+        const senderUser = registeredUsers.find(u => 
+          (n.sender.id && u.id === n.sender.id) || 
+          (n.sender.email && u.email && u.email.toLowerCase() === n.sender.email.toLowerCase())
+        );
+        if (senderUser && senderUser.profile) {
+          const latestAvatar = getFallbackAvatar(senderUser.profile.gender, senderUser.profile.avatar);
+          if (n.sender.avatar !== latestAvatar || n.sender.name !== senderUser.profile.name) {
+            changed = true;
+            return {
+              ...n,
+              sender: {
+                ...n.sender,
+                name: senderUser.profile.name || n.sender.name,
+                avatar: latestAvatar,
+                gender: senderUser.profile.gender || n.sender.gender
+              }
+            };
+          }
+        }
+        return n;
+      });
+      return changed ? updated : prevNotifications;
+    });
+  }, [registeredUsers]);
 
   // Joint Requests & Notifications State
   const [notifications, setNotifications] = useState(() => {
