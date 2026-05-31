@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, NavLink, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, NavLink, Navigate, Link } from 'react-router-dom';
 import { Compass, User, MessageCircle, Menu, Bell, Users, LogOut, Globe, X, Check, AlertCircle, Briefcase, Search as SearchIcon } from 'lucide-react';
 import Feed from './pages/Feed';
 import Profile from './pages/Profile';
@@ -72,30 +72,36 @@ function NotificationDrawer({ isOpen, onClose }) {
             visibleNotifications.map(notif => (
               <div key={notif.id} className={`notif-card ${!notif.read ? 'unread' : ''}`}>
                 <div className="notif-user-info">
-                  <img src={notif.sender.avatar} alt={notif.sender.name} className="notif-avatar" />
-                  <div style={{ flex: 1 }}>
-                    {notif.type === 'join_request' && (
-                      <p className="notif-text">
-                        <strong>{notif.sender.name}</strong> requested to join your trip to <strong>{notif.trip.destination}</strong>!
-                      </p>
-                    )}
-                    {notif.type === 'connect_request' && (
-                      <p className="notif-text">
-                        <strong>{notif.sender.name}</strong> sent you a connection request!
-                      </p>
-                    )}
-                    {notif.type === 'request_accepted' && (
-                      <p className="notif-text">
-                        <strong>{notif.sender.name}</strong> accepted your request to join their trip to <strong>{notif.trip.destination}</strong>!
-                      </p>
-                    )}
-                    {notif.type === 'connect_accepted' && (
-                      <p className="notif-text">
-                        <strong>{notif.sender.name}</strong> accepted your connection request!
-                      </p>
-                    )}
-                    <span className="notif-time">{notif.timestamp}</span>
-                  </div>
+                  <Link 
+                    to={`/profile/${notif.sender.email || notif.sender.id}`} 
+                    onClick={onClose}
+                    style={{ display: 'flex', gap: '0.75rem', textDecoration: 'none', color: 'inherit', width: '100%' }}
+                  >
+                    <img src={notif.sender.avatar} alt={notif.sender.name} className="notif-avatar" />
+                    <div style={{ flex: 1 }}>
+                      {notif.type === 'join_request' && (
+                        <p className="notif-text">
+                          <strong>{notif.sender.name}</strong> requested to join your trip to <strong>{notif.trip.destination}</strong>!
+                        </p>
+                      )}
+                      {notif.type === 'connect_request' && (
+                        <p className="notif-text">
+                          <strong>{notif.sender.name}</strong> sent you a connection request!
+                        </p>
+                      )}
+                      {notif.type === 'request_accepted' && (
+                        <p className="notif-text">
+                          <strong>{notif.sender.name}</strong> accepted your request to join their trip to <strong>{notif.trip.destination}</strong>!
+                        </p>
+                      )}
+                      {notif.type === 'connect_accepted' && (
+                        <p className="notif-text">
+                          <strong>{notif.sender.name}</strong> accepted your connection request!
+                        </p>
+                      )}
+                      <span className="notif-time">{notif.timestamp}</span>
+                    </div>
+                  </Link>
                 </div>
 
                 {(notif.type === 'join_request' || notif.type === 'connect_request') && notif.status === 'pending' && (
@@ -163,6 +169,7 @@ function Sidebar({ mobileOpen, setMobileOpen, notifOpen, setNotifOpen }) {
             <NavLink 
               key={item.path} 
               to={item.path} 
+              end={item.path === '/profile'}
               className={({ isActive }) => `nav-item ${isActive && !notifOpen ? 'active' : ''}`}
               onClick={() => {
                 setMobileOpen(false);
@@ -347,6 +354,7 @@ function App() {
                     <Route path="/connect" element={<Connect />} />
                     <Route path="/search" element={<Search />} />
                     <Route path="/profile" element={<Profile />} />
+                    <Route path="/profile/:userId" element={<Profile />} />
                     <Route path="/messages" element={<Messages />} />
                     {/* Fallback to home */}
                     <Route path="*" element={<Navigate to="/" replace />} />

@@ -349,6 +349,51 @@ export function TravelProvider({ children }) {
               gender: "Male",
               dob: "1995-01-15"
             }
+          },
+          {
+            name: "Vikram Singh",
+            email: "vikram@wanderconnect.com",
+            password: "password123",
+            buddies: [],
+            profile: {
+              name: "Vikram Singh",
+              bio: "Always looking for the next mountain to climb. Let's do a bike trip to Leh!",
+              styles: ["Adventure", "Hiking"],
+              avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&w=400&q=80",
+              title: "Adventure Travel Partner",
+              gender: "Male",
+              dob: "2000-04-12"
+            }
+          },
+          {
+            name: "Neha Patel",
+            email: "neha@wanderconnect.com",
+            password: "password123",
+            buddies: [],
+            profile: {
+              name: "Neha Patel",
+              bio: "Planning a trip to Rajasthan to explore forts and eat amazing local food. Looking for a buddy!",
+              styles: ["Foodie", "Culture"],
+              avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80",
+              title: "Culture Explorer",
+              gender: "Female",
+              dob: "2002-06-15"
+            }
+          },
+          {
+            name: "Rahul Nair",
+            email: "rahul@wanderconnect.com",
+            password: "password123",
+            buddies: [],
+            profile: {
+              name: "Rahul Nair",
+              bio: "Backpacker heading to Varkala for a month. Surf, chill, and repeat.",
+              styles: ["Relaxation", "Backpacking"],
+              avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80",
+              title: "Surf & Chill Backpacker",
+              gender: "Male",
+              dob: "1998-03-22"
+            }
           }
         ];
 

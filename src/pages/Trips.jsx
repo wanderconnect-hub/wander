@@ -1,4 +1,5 @@
 import { useState, useContext } from 'react';
+import { Link } from 'react-router-dom';
 import { Calendar, MapPin, CheckCircle, Clock, Award, Compass, Users, ChevronRight, Plus, Image as ImageIcon } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
 import { supabase } from '../supabase';
@@ -195,6 +196,8 @@ export default function Trips() {
     const approvedTravelers = notifications
       .filter(n => n.type === 'join_request' && n.trip?.id === trip.id && n.status === 'accepted')
       .map(n => ({
+        id: n.sender?.id,
+        email: n.sender?.email,
         name: n.sender?.name || "Traveler",
         avatar: getFallbackAvatar(n.sender?.gender, n.sender?.avatar),
         role: "Co-traveler"
@@ -202,6 +205,8 @@ export default function Trips() {
 
     // Host buddy
     const hostBuddy = isOwnTrip ? [] : [{
+      id: trip.host?.id,
+      email: trip.host?.email,
       name: trip.host?.name || "Host",
       avatar: getFallbackAvatar(trip.host?.gender, trip.host?.avatar),
       role: "Host"
@@ -308,6 +313,8 @@ export default function Trips() {
               const approvedTravelers = notifications
                 .filter(n => n.type === 'join_request' && n.trip?.id === trip.id && n.status === 'accepted')
                 .map(n => ({
+                  id: n.sender?.id,
+                  email: n.sender?.email,
                   name: n.sender?.name || "Traveler",
                   avatar: getFallbackAvatar(n.sender?.gender, n.sender?.avatar),
                   role: "Confirmed Companion"
@@ -353,7 +360,7 @@ export default function Trips() {
                       </h5>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         {/* Include host */}
-                        <div style={{ position: 'relative' }}>
+                        <Link to={`/profile/${trip.host?.id || trip.host?.email}`} style={{ textDecoration: 'none', display: 'block', position: 'relative' }}>
                           <img
                             src={getFallbackAvatar(trip.host?.gender, trip.host?.avatar)}
                             alt={trip.host?.name || "Host"}
@@ -361,17 +368,18 @@ export default function Trips() {
                             title={`${trip.host?.name || "Host"} (Host)`}
                           />
                           <span style={{ position: 'absolute', bottom: '-4px', right: '-4px', background: 'var(--primary)', color: 'white', fontSize: '0.5rem', padding: '1px 3px', borderRadius: '3px', fontWeight: 'bold' }}>H</span>
-                        </div>
+                        </Link>
 
                         {/* Approved travelers */}
                         {approvedTravelers.map((traveler, index) => (
-                          <img
-                            key={index}
-                            src={traveler.avatar}
-                            alt={traveler.name}
-                            style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid var(--border-color)', objectFit: 'cover' }}
-                            title={`${traveler.name} (Companion)`}
-                          />
+                          <Link key={index} to={`/profile/${traveler.id || traveler.email}`} style={{ textDecoration: 'none', display: 'block' }}>
+                            <img
+                              src={traveler.avatar}
+                              alt={traveler.name}
+                              style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid var(--border-color)', objectFit: 'cover' }}
+                              title={`${traveler.name} (Companion)`}
+                            />
+                          </Link>
                         ))}
 
                         {approvedTravelers.length === 0 && (
@@ -429,13 +437,14 @@ export default function Trips() {
                   </h5>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     {trip.buddies.map((buddy, index) => (
-                      <img
-                        key={index}
-                        src={buddy.avatar}
-                        alt={buddy.name}
-                        style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid var(--border-color)', objectFit: 'cover' }}
-                        title={`${buddy.name} (${buddy.role})`}
-                      />
+                      <Link key={index} to={`/profile/${buddy.id || buddy.email || buddy.name}`} style={{ textDecoration: 'none', display: 'block' }}>
+                        <img
+                          src={buddy.avatar}
+                          alt={buddy.name}
+                          style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid var(--border-color)', objectFit: 'cover' }}
+                          title={`${buddy.name} (${buddy.role})`}
+                        />
+                      </Link>
                     ))}
                   </div>
                 </div>

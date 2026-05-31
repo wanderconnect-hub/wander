@@ -1,4 +1,5 @@
 import { useState, useContext } from 'react';
+import { Link } from 'react-router-dom';
 import { TravelContext } from '../context.jsx';
 import { Check, X, MapPin, Plane, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getFallbackAvatar } from '../utils/avatars';
@@ -291,15 +292,17 @@ export default function Connect() {
                 key={notif.id}
                 className="request-card animate-fade-in"
               >
-                <img 
-                  src={notif.sender.avatar} 
-                  alt={notif.sender.name} 
-                  style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover' }}
-                />
-                <div style={{ flex: 1 }}>
-                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 'bold' }}>{notif.sender.name}</h4>
-                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{notif.sender.location || "Traveler"}</p>
-                </div>
+                <Link to={`/profile/${notif.sender.id || notif.sender.email}`} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', color: 'inherit', flex: 1 }}>
+                  <img 
+                    src={notif.sender.avatar} 
+                    alt={notif.sender.name} 
+                    style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover' }}
+                  />
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 'bold' }}>{notif.sender.name}</h4>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{notif.sender.location || "Traveler"}</p>
+                  </div>
+                </Link>
                 <div className="request-actions">
                   <button 
                     disabled={processingIds.has(notif.id)}
@@ -378,11 +381,13 @@ export default function Connect() {
           )}
 
           <div className="trip-card" style={{ position: 'relative', overflow: 'hidden' }}>
-            <img 
-              src={currentUser.avatar} 
-              alt={currentUser.name} 
-              style={{ width: '100%', height: '400px', objectFit: 'cover' }} 
-            />
+            <Link to={`/profile/${currentUser.email || currentUser.id}`} style={{ display: 'block', width: '100%', height: '400px' }}>
+              <img 
+                src={currentUser.avatar} 
+                alt={currentUser.name} 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+              />
+            </Link>
             
             <div style={{ 
               position: 'absolute', 
@@ -391,10 +396,14 @@ export default function Connect() {
               width: '100%', 
               background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
               color: 'white',
-              padding: '2rem 1.5rem 1rem'
+              padding: '2rem 1.5rem 1rem',
+              pointerEvents: 'none'
             }}>
-              <h2 style={{ fontSize: '1.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {currentUser.name}, {currentUser.age} <span style={{ fontSize: '1.2rem', opacity: 0.8, color: 'var(--primary)' }}>({currentUser.gender})</span>
+              <h2 style={{ fontSize: '1.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', pointerEvents: 'auto' }}>
+                <Link to={`/profile/${currentUser.email || currentUser.id}`} style={{ color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {currentUser.name}, {currentUser.age}
+                </Link>
+                <span style={{ fontSize: '1.2rem', opacity: 0.8, color: 'var(--primary)' }}>({currentUser.gender})</span>
               </h2>
               <p style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
                 <MapPin size={16} /> {currentUser.location}

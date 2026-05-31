@@ -1,4 +1,5 @@
 import { useState, useContext } from 'react';
+import { Link } from 'react-router-dom';
 import { MapPin, Calendar, CheckCircle, Plus, Image as ImageIcon, UserPlus, Clock } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
 import { supabase } from '../supabase';
@@ -88,8 +89,10 @@ export default function Feed() {
           category: data.category,
           image: data.image,
           host: {
+            id: data.host?.id || data.host_id || user.id,
             name: data.host?.name || userProfile.name,
             email: data.host?.email || currentUserEmail,
+            gender: data.host?.gender || userProfile.gender,
             verified: true,
             avatar: data.host?.avatar || userProfile.avatar
           }
@@ -379,21 +382,21 @@ export default function Feed() {
                         {sendingTripIds.has(trip.id) ? 'Sending...' : 'Request to Join'}
                       </button>
                     )}
-                  </div>
-
-                  <div className="trip-host">
-                    <div className="host-avatar-wrap">
-                      <img src={getFallbackAvatar(trip.host?.gender, trip.host?.avatar)} alt={trip.host?.name || "Host"} className="host-avatar" />
-                      {trip.host?.verified && (
-                        <div className="verified-badge" title="Verified User">
-                          <CheckCircle size={12} strokeWidth={3} />
-                        </div>
-                      )}
-                    </div>
-                    <div className="host-info" style={{ flex: 1 }}>
-                      <h5>{trip.host?.name || "Traveler"}</h5>
-                      <p>Est. Budget: {trip.budget}</p>
-                    </div>
+                  </div>                   <div className="trip-host">
+                    <Link to={`/profile/${trip.host?.id || trip.host?.email}`} className="host-avatar-link" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', color: 'inherit', flex: 1 }}>
+                      <div className="host-avatar-wrap">
+                        <img src={getFallbackAvatar(trip.host?.gender, trip.host?.avatar)} alt={trip.host?.name || "Host"} className="host-avatar" />
+                        {trip.host?.verified && (
+                          <div className="verified-badge" title="Verified User">
+                            <CheckCircle size={12} strokeWidth={3} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="host-info">
+                        <h5 style={{ margin: 0, fontWeight: '700' }}>{trip.host?.name || "Traveler"}</h5>
+                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Est. Budget: {trip.budget}</p>
+                      </div>
+                    </Link>
                     <span style={{ fontSize: '0.75rem', background: 'var(--background)', color: 'var(--primary)', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-full)', fontWeight: 'bold' }}>
                       {trip.category || 'Adventure'}
                     </span>
@@ -423,11 +426,18 @@ export default function Feed() {
                 accept="image/*" 
                 onChange={(e) => {
                   if(e.target.files && e.target.files[0]) {
+                    const file = e.target.files[0];
+                    if (file.size > 1024 * 1024) {
+                      showToast("Image file is too large! Please choose an image smaller than 1MB.", "error");
+                      e.target.value = "";
+                      setImagePreview(null);
+                      return;
+                    }
                     const reader = new FileReader();
                     reader.onloadend = () => {
                       setImagePreview(reader.result);
                     };
-                    reader.readAsDataURL(e.target.files[0]);
+                    reader.readAsDataURL(file);
                   }
                 }} 
                 className="form-control" 

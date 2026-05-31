@@ -1,4 +1,5 @@
 import { useState, useContext, useEffect, useRef } from 'react';
+import { useLocation, Link } from 'react-router-dom';
 import { Search, Send, MoreVertical, Phone, Video, ChevronLeft } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
 import { supabase } from '../supabase';
@@ -29,6 +30,7 @@ export default function Messages() {
       
       return {
         ...chat,
+        participantId: otherParticipant,
         name: otherUser ? otherUser.profile.name : (chat.name || "Travel Buddy"),
         avatar: otherUser ? getFallbackAvatar(otherUser.profile.gender, otherUser.profile.avatar) : getFallbackAvatar('Male', chat.avatar),
         lastMsg: chat.messages[chat.messages.length - 1]?.text || "Start chatting!",
@@ -39,6 +41,9 @@ export default function Messages() {
       };
     });
 
+  const location = useLocation();
+  const selectUserEmail = location.state?.selectUserEmail;
+
   const [activeChat, setActiveChat] = useState(visibleChats[0]?.id || null);
   const [message, setMessage] = useState('');
   const [mobileShowChat, setMobileShowChat] = useState(false);
@@ -48,12 +53,22 @@ export default function Messages() {
     fetchChatsAndMessages();
   }, []);
 
-  // Auto-select first chat if activeChat is invalid or null
+  // Auto-select chat matching selectUserEmail/ID if passed in state, otherwise fallback to first chat
   useEffect(() => {
+    if (selectUserEmail && visibleChats.length > 0) {
+      const match = visibleChats.find(c => 
+        c.participants.includes(selectUserEmail) || 
+        c.participants.some(p => p && typeof p === 'string' && p.toLowerCase() === selectUserEmail.toLowerCase())
+      );
+      if (match) {
+        setActiveChat(match.id);
+        return;
+      }
+    }
     if (visibleChats.length > 0 && (!activeChat || !visibleChats.some(c => c.id === activeChat))) {
       setActiveChat(visibleChats[0].id);
     }
-  }, [visibleChats, activeChat]);
+  }, [visibleChats, activeChat, selectUserEmail]);
 
   const activeChatData = visibleChats.find(c => c.id === activeChat);
 
@@ -192,11 +207,13 @@ export default function Messages() {
                 >
                   <ChevronLeft size={24} />
                 </button>
-                <img src={activeChatData.avatar} alt="User" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
-                <div>
-                  <h4 style={{ fontSize: '1.1rem' }}>{activeChatData.name}</h4>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--success)' }}>Online</p>
-                </div>
+                <Link to={`/profile/${activeChatData.participantId}`} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', color: 'inherit' }}>
+                  <img src={activeChatData.avatar} alt="User" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                  <div>
+                    <h4 style={{ fontSize: '1.1rem', margin: 0 }}>{activeChatData.name}</h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--success)', margin: 0 }}>Online</p>
+                  </div>
+                </Link>
               </div>
               
               <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-muted)' }}>

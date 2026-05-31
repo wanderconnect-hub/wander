@@ -1,7 +1,7 @@
 import { useState, useContext } from 'react';
 import { Search as SearchIcon, UserPlus, Check, MessageSquare, AlertCircle, MapPin, Plane, ShieldCheck } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { getFallbackAvatar } from '../utils/avatars';
 
@@ -335,7 +335,7 @@ export default function Search() {
                 className="search-card animate-fade-in"
               >
                 {/* Profile Photo */}
-                <div style={{ position: 'relative' }}>
+                <Link to={`/profile/${person.email || person.id}`} style={{ textDecoration: 'none', position: 'relative', display: 'block' }}>
                   <img 
                     src={person.avatar} 
                     alt={person.name} 
@@ -343,15 +343,17 @@ export default function Search() {
                   />
                   {person.verified && (
                     <span style={{ position: 'absolute', bottom: 0, right: 0, background: 'white', borderRadius: '50%', padding: '2px', display: 'flex', alignItems: 'center' }}>
-                      <ShieldCheck size={18} fill="var(--primary)" color="white" />
+                       <ShieldCheck size={18} fill="var(--primary)" color="white" />
                     </span>
                   )}
-                </div>
+                </Link>
 
                 {/* Profile Details */}
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{person.name}</h3>
+                    <Link to={`/profile/${person.email || person.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700' }}>{person.name}</h3>
+                    </Link>
                     {person.age && person.gender && (
                       <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                         ({person.age}, {person.gender})
