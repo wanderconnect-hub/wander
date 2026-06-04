@@ -220,6 +220,64 @@ export function TravelProvider({ children }) {
     }
   }, [currentUserId]);
 
+  useEffect(() => {
+    let active = true;
+
+    const syncSession = async (session) => {
+      if (!active) return;
+      if (session) {
+        setIsAuthenticated(true);
+        setCurrentUserEmail(session.user.email);
+        setCurrentUserId(session.user.id);
+
+        try {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (error) {
+            console.error("Error loading profile from DB on session sync:", error);
+          }
+
+          if (profile && active) {
+            setUserProfile({
+              name: profile.name,
+              bio: profile.bio || "Tell us about yourself!",
+              styles: profile.styles || [],
+              avatar: getFallbackAvatar(profile.gender, profile.avatar),
+              title: profile.title || "Traveler",
+              gender: profile.gender,
+              dob: profile.dob
+            });
+          }
+        } catch (err) {
+          console.error("Exception loading profile on session sync:", err);
+        }
+      } else {
+        setIsAuthenticated(false);
+        setCurrentUserEmail('');
+        setCurrentUserId('');
+      }
+    };
+
+    // Check current session on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      syncSession(session);
+    });
+
+    // Listen to changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      syncSession(session);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
   // Initial travel buddies for the user (synced per registered user account)
   const [buddies, setBuddies] = useState([]);
 
@@ -999,13 +1057,18 @@ export function TravelProvider({ children }) {
     try {
       const isSupabaseId = typeof tripId === 'string' && tripId.includes('-');
       if (isSupabaseId) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('trips')
           .delete()
-          .eq('id', tripId);
+          .eq('id', tripId)
+          .select();
         if (error) {
           console.error("Error deleting trip from Supabase:", error);
           return { error };
+        }
+        if (!data || data.length === 0) {
+          console.warn("No rows affected or unauthorized delete for trip:", tripId);
+          return { error: new Error("Unauthorized: You do not have permission to delete this trip.") };
         }
       }
       setTrips(prev => prev.filter(t => t.id !== tripId));
@@ -1014,6 +1077,17 @@ export function TravelProvider({ children }) {
       console.error("Exception deleting trip:", err);
       return { error: err };
     }
+  };
+
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error("Error signing out:", e);
+    }
+    setIsAuthenticated(false);
+    setCurrentUserEmail('');
+    setCurrentUserId('');
   };
 
   const handleAcceptNotification = async (notif) => {
@@ -1290,7 +1364,8 @@ export function TravelProvider({ children }) {
       fetchChatsAndMessages,
       handleAcceptNotification,
       handleDeclineNotification,
-      deleteTrip
+      deleteTrip,
+      logout
     }}>
       {children}
     </TravelContext.Provider>

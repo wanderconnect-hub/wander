@@ -143,7 +143,7 @@ function NotificationDrawer({ isOpen, onClose }) {
 }
 
 function Sidebar({ mobileOpen, setMobileOpen, notifOpen, setNotifOpen }) {
-  const { userProfile, setIsAuthenticated, notifications, currentUserEmail } = React.useContext(TravelContext);
+  const { userProfile, logout, notifications, currentUserEmail } = React.useContext(TravelContext);
   const [showMenu, setShowMenu] = React.useState(false);
   
   const unreadCount = notifications.filter(n => n.receiverEmail === currentUserEmail && !n.read).length;
@@ -239,7 +239,7 @@ function Sidebar({ mobileOpen, setMobileOpen, notifOpen, setNotifOpen }) {
               <button 
                 className="nav-item" 
                 style={{ width: '100%', background: 'transparent', border: 'none', textAlign: 'left', color: 'var(--danger)', cursor: 'pointer', padding: '0.75rem', marginBottom: 0 }}
-                onClick={() => setIsAuthenticated(false)}
+                onClick={logout}
               >
                 <LogOut size={20} />
                 Logout
