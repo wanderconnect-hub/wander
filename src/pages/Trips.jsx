@@ -86,6 +86,7 @@ export default function Trips() {
           category: data.category,
           image: data.image,
           host: {
+            id: data.host?.id || data.host_id || currentUserId,
             name: data.host?.name || userProfile.name,
             email: data.host?.email || currentUserEmail,
             verified: true,
