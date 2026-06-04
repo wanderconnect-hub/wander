@@ -523,8 +523,8 @@ export default function Profile() {
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
                         const file = e.target.files[0];
-                        if (file.size > 1024 * 1024) {
-                          alert('Please select an image file under 1MB to avoid database/storage size issues.');
+                        if (file.size > 3 * 1024 * 1024) {
+                          alert('Please select an image file under 3MB to avoid database/storage size issues.');
                           return;
                         }
                         const reader = new FileReader();

@@ -530,8 +530,8 @@ export default function Feed() {
                 onChange={(e) => {
                   if(e.target.files && e.target.files[0]) {
                     const file = e.target.files[0];
-                    if (file.size > 1024 * 1024) {
-                      showToast("Image file is too large! Please choose an image smaller than 1MB.", "error");
+                    if (file.size > 3 * 1024 * 1024) {
+                      showToast("Image file is too large! Please choose an image smaller than 3MB.", "error");
                       e.target.value = "";
                       setImagePreview(null);
                       return;
