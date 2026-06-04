@@ -6,16 +6,36 @@ import { supabase } from '../supabase';
 import { getFallbackAvatar } from '../utils/avatars';
 
 export default function Messages() {
-  const { chats, setChats, currentUserEmail, registeredUsers, currentUserId, fetchChatsAndMessages, removeConnection } = useContext(TravelContext);
+  const { chats, setChats, currentUserEmail, registeredUsers, currentUserId, fetchChatsAndMessages, removeConnection, buddies } = useContext(TravelContext);
   const messagesEndRef = useRef(null);
   
   // Resolve participant details dynamically based on the active user profile
   const visibleChats = chats
-    .filter(chat => 
-      chat.participants.includes(currentUserId) || 
-      (currentUserEmail && chat.participants.includes(currentUserEmail)) ||
-      chat.participants.some(p => p && typeof p === 'string' && currentUserEmail && p.toLowerCase() === currentUserEmail.toLowerCase())
-    )
+    .filter(chat => {
+      // Must be participant
+      const isParticipant = chat.participants.includes(currentUserId) || 
+        (currentUserEmail && chat.participants.includes(currentUserEmail)) ||
+        chat.participants.some(p => p && typeof p === 'string' && currentUserEmail && p.toLowerCase() === currentUserEmail.toLowerCase());
+      
+      if (!isParticipant) return false;
+
+      // Find the other participant
+      const otherParticipant = chat.participants.find(p => 
+        p !== currentUserId && 
+        p !== currentUserEmail && 
+        (p && typeof p === 'string' && currentUserEmail && p.toLowerCase() !== currentUserEmail.toLowerCase())
+      );
+
+      if (!otherParticipant) return false;
+
+      // The other participant must be in our travel buddies list
+      const isBuddy = buddies.some(b => 
+        b.id === otherParticipant || 
+        (b.email && typeof otherParticipant === 'string' && b.email.toLowerCase() === otherParticipant.toLowerCase())
+      );
+
+      return isBuddy;
+    })
     .map(chat => {
       const otherParticipant = chat.participants.find(p => 
         p !== currentUserId && 

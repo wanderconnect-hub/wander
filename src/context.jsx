@@ -345,7 +345,7 @@ export function TravelProvider({ children }) {
       } else if (profilesData) {
         const mappedUsers = profilesData.map(p => {
           // Find connections where p.id is either user_id_1 or user_id_2
-          const userBuddiesRelations = buddiesData ? buddiesData.filter(b => b.user_id_1 === p.id || b.user_id_2 === p.id) : [];
+          const userBuddiesRelations = buddiesData ? buddiesData.filter(b => (b.user_id_1 === p.id || b.user_id_2 === p.id) && b.status === 'accepted') : [];
           const userBuddies = userBuddiesRelations.map(rel => {
             const otherId = rel.user_id_1 === p.id ? rel.user_id_2 : rel.user_id_1;
             const otherProfile = profilesData.find(op => op.id === otherId);
@@ -1102,7 +1102,7 @@ export function TravelProvider({ children }) {
 
         const { error: buddyErr } = await supabase
           .from('buddies')
-          .delete()
+          .update({ status: 'declined' })
           .eq('user_id_1', id1)
           .eq('user_id_2', id2);
 
