@@ -8,7 +8,7 @@ import { DEFAULT_AVATARS, getFallbackAvatar } from '../utils/avatars';
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default function Profile() {
-  const { buddies, userProfile, setUserProfile, currentUserEmail, currentUserId, setRegisteredUsers, calculateAge, registeredUsers, createSupabaseChat } = useContext(TravelContext);
+  const { buddies, userProfile, setUserProfile, currentUserEmail, currentUserId, setRegisteredUsers, calculateAge, registeredUsers, createSupabaseChat, trips, notifications, chats } = useContext(TravelContext);
   const { userId } = useParams();
   const navigate = useNavigate();
 
@@ -95,6 +95,149 @@ export default function Profile() {
 
   // ─── Resolve target user (local wins, then remote) ────────────────────────
   const targetUser = localTargetUser || remoteProfile;
+  const targetId = isOwnProfile ? currentUserId : targetUser?.id;
+  const targetEmail = isOwnProfile ? currentUserEmail : (targetUser?.email || targetUser?.profile?.email);
+
+  const [targetJoinedTripIds, setTargetJoinedTripIds] = useState(new Set());
+  const [targetChatsCount, setTargetChatsCount] = useState(0);
+
+  useEffect(() => {
+    if (isOwnProfile || !targetId) {
+      setTargetJoinedTripIds(new Set());
+      return;
+    }
+
+    let active = true;
+    supabase
+      .from('notifications')
+      .select('trip_id')
+      .eq('sender_id', targetId)
+      .eq('type', 'join_request')
+      .eq('status', 'accepted')
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Error fetching target user joined trips:", error);
+        } else if (data && active) {
+          const ids = new Set(data.map(n => n.trip_id).filter(Boolean));
+          setTargetJoinedTripIds(ids);
+        }
+      });
+
+    return () => { active = false; };
+  }, [targetId, isOwnProfile]);
+
+  useEffect(() => {
+    if (isOwnProfile || !targetId) {
+      setTargetChatsCount(0);
+      return;
+    }
+
+    let active = true;
+    supabase
+      .from('chat_participants')
+      .select('chat_id')
+      .eq('user_id', targetId)
+      .then(async ({ data: myLinks, error }) => {
+        if (error || !myLinks || myLinks.length === 0) {
+          if (active) setTargetChatsCount(0);
+          return;
+        }
+
+        const chatIds = myLinks.map(l => l.chat_id);
+        const { data: allParts, error: partsErr } = await supabase
+          .from('chat_participants')
+          .select('chat_id, user_id')
+          .in('chat_id', chatIds)
+          .neq('user_id', targetId);
+
+        if (partsErr || !allParts) {
+          if (active) setTargetChatsCount(0);
+          return;
+        }
+
+        const targetBuddies = targetUser?.buddies || [];
+        const activePartners = new Set();
+        
+        allParts.forEach(p => {
+          const isBuddy = targetBuddies.some(b => 
+            b.id === p.user_id || 
+            (b.email && typeof p.user_id === 'string' && b.email.toLowerCase() === p.user_id.toLowerCase())
+          );
+          if (isBuddy) {
+            activePartners.add(p.user_id);
+          }
+        });
+
+        if (active) {
+          setTargetChatsCount(activePartners.size);
+        }
+      });
+
+    return () => { active = false; };
+  }, [targetId, isOwnProfile, targetUser]);
+
+  // Calculate Trip Count
+  const postedTrips = trips.filter(t => 
+    (targetId && t.host?.id === targetId) ||
+    (targetEmail && t.host?.email?.toLowerCase() === targetEmail.toLowerCase())
+  );
+
+  const joinedTripIds = new Set();
+  if (isOwnProfile) {
+    notifications.forEach(n => {
+      const isSenderOfAcceptedJoin = n.type === 'join_request' && n.status === 'accepted' && (
+        (currentUserId && n.senderId === currentUserId) ||
+        (currentUserEmail && n.sender?.email?.toLowerCase() === currentUserEmail.toLowerCase())
+      );
+      const isReceiverOfAcceptedRequest = n.type === 'request_accepted' && (
+        (currentUserId && n.receiverId === currentUserId) ||
+        (currentUserEmail && n.receiverEmail?.toLowerCase() === currentUserEmail.toLowerCase())
+      );
+      if ((isSenderOfAcceptedJoin || isReceiverOfAcceptedRequest) && n.trip?.id) {
+        joinedTripIds.add(n.trip.id);
+      }
+    });
+  } else {
+    targetJoinedTripIds.forEach(id => joinedTripIds.add(id));
+  }
+
+  const userTripIds = new Set();
+  postedTrips.forEach(t => userTripIds.add(t.id));
+  joinedTripIds.forEach(id => userTripIds.add(id));
+  const tripCount = userTripIds.size;
+
+  // Calculate Connection Count
+  const connectionCount = (() => {
+    if (isOwnProfile) {
+      const userChats = chats.filter(chat => 
+        chat.participants.includes(currentUserId) ||
+        (currentUserEmail && chat.participants.includes(currentUserEmail)) ||
+        chat.participants.some(p => p && typeof p === 'string' && currentUserEmail && p.toLowerCase() === currentUserEmail.toLowerCase())
+      );
+
+      const activeChatPartners = new Set();
+      userChats.forEach(chat => {
+        const otherParticipant = chat.participants.find(p => 
+          p !== currentUserId && 
+          p !== currentUserEmail && 
+          (p && typeof p === 'string' && currentUserEmail && p.toLowerCase() !== currentUserEmail.toLowerCase())
+        );
+        
+        if (otherParticipant) {
+          const isBuddy = buddies.some(b => 
+            b.id === otherParticipant || 
+            (b.email && typeof otherParticipant === 'string' && b.email.toLowerCase() === otherParticipant.toLowerCase())
+          );
+          if (isBuddy) {
+            activeChatPartners.add(otherParticipant);
+          }
+        }
+      });
+      return activeChatPartners.size;
+    } else {
+      return targetChatsCount;
+    }
+  })();
 
   // ─── Display profile ──────────────────────────────────────────────────────
   const displayProfileRaw = isOwnProfile
@@ -268,11 +411,11 @@ export default function Profile() {
 
           <div className="profile-stats">
             <div className="stat-item">
-              <div className="stat-value">12</div>
+              <div className="stat-value">{tripCount}</div>
               <div className="stat-label">Trips</div>
             </div>
             <div className="stat-item">
-              <div className="stat-value">{24 + displayBuddies.length}</div>
+              <div className="stat-value">{connectionCount}</div>
               <div className="stat-label">Connections</div>
             </div>
             <div className="stat-item">
