@@ -1,6 +1,6 @@
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Calendar, CheckCircle, Plus, Image as ImageIcon, UserPlus, Clock, Trash2 } from 'lucide-react';
+import { MapPin, Calendar, CheckCircle, Plus, Image as ImageIcon, UserPlus, Clock, Trash2, MoreVertical } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
 import { supabase } from '../supabase';
 import { getFallbackAvatar } from '../utils/avatars';
@@ -13,6 +13,13 @@ export default function Feed() {
   const [toast, setToast] = useState(null);
   const [sendingTripIds, setSendingTripIds] = useState(new Set());
   const [posting, setPosting] = useState(false);
+  const [openDropdownId, setOpenDropdownId] = useState(null);
+
+  useEffect(() => {
+    const handleClose = () => setOpenDropdownId(null);
+    window.addEventListener('click', handleClose);
+    return () => window.removeEventListener('click', handleClose);
+  }, []);
   
   const filters = ['All', 'Adventure', 'Culture', 'Relaxation', 'Hiking'];
 
@@ -301,12 +308,100 @@ export default function Feed() {
 
             return (
               <div key={trip.id} className="trip-card animate-fade-in">
-                <div className="trip-image-wrap">
+                <div className="trip-image-wrap" style={{ position: 'relative' }}>
                   <img src={trip.image} alt={trip.destination} className="trip-image" />
                   <div className="trip-date-badge">
                     <Calendar size={16} />
                     {trip.date}
                   </div>
+
+                  {isOwnTrip && (
+                    <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', zIndex: 10 }}>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenDropdownId(openDropdownId === trip.id ? null : trip.id);
+                        }}
+                        style={{
+                          background: 'rgba(26, 26, 36, 0.65)',
+                          backdropFilter: 'blur(4px)',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          borderRadius: '50%',
+                          width: '36px',
+                          height: '36px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          cursor: 'pointer',
+                          transition: 'background 0.2s'
+                        }}
+                        onMouseOver={e => e.currentTarget.style.background = 'rgba(26, 26, 36, 0.85)'}
+                        onMouseOut={e => e.currentTarget.style.background = 'rgba(26, 26, 36, 0.65)'}
+                      >
+                        <MoreVertical size={18} />
+                      </button>
+
+                      {openDropdownId === trip.id && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          right: 0,
+                          marginTop: '0.5rem',
+                          background: 'var(--card-bg)',
+                          borderRadius: 'var(--radius-md)',
+                          boxShadow: 'var(--shadow-lg)',
+                          border: '1px solid var(--border-color)',
+                          padding: '0.5rem',
+                          minWidth: '140px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          zIndex: 20
+                        }}>
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              setOpenDropdownId(null);
+                              if (window.confirm("Are you sure you want to delete this trip?")) {
+                                const res = await deleteTrip(trip.id);
+                                if (res.success) {
+                                  showToast("Trip deleted successfully.");
+                                } else {
+                                  showToast("Failed to delete trip.", "error");
+                                }
+                              }
+                            }}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: 'var(--accent)',
+                              padding: '0.6rem 0.8rem',
+                              borderRadius: 'var(--radius-sm)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              fontSize: '0.9rem',
+                              fontWeight: '600',
+                              width: '100%',
+                              textAlign: 'left'
+                            }}
+                            onMouseOver={e => {
+                              e.currentTarget.style.background = 'rgba(235, 87, 87, 0.1)';
+                              e.currentTarget.style.color = 'red';
+                            }}
+                            onMouseOut={e => {
+                              e.currentTarget.style.background = 'transparent';
+                              e.currentTarget.style.color = 'var(--accent)';
+                            }}
+                          >
+                            <Trash2 size={16} />
+                            Delete Trip
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 
                 <div className="trip-content">
@@ -319,60 +414,21 @@ export default function Feed() {
                   {/* Action Join Button */}
                   <div style={{ marginBottom: '1.25rem' }}>
                     {isOwnTrip ? (
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <span style={{ 
-                          display: 'inline-flex', 
-                          alignItems: 'center', 
-                          gap: '0.35rem', 
-                          background: 'rgba(0, 78, 137, 0.1)', 
-                          color: 'var(--secondary)', 
-                          padding: '0.5rem 1.25rem', 
-                          borderRadius: 'var(--radius-full)', 
-                          fontSize: '0.85rem',
-                          fontWeight: '700',
-                          flex: 1,
-                          justifyContent: 'center'
-                        }}>
-                          Hosted by you
-                        </span>
-                        <button 
-                          onClick={async () => {
-                            if (window.confirm("Are you sure you want to delete this trip?")) {
-                              const res = await deleteTrip(trip.id);
-                              if (res.success) {
-                                showToast("Trip deleted successfully.");
-                              } else {
-                                showToast("Failed to delete trip.", "error");
-                              }
-                            }
-                          }}
-                          style={{
-                            padding: '0.5rem',
-                            borderRadius: '50%',
-                            width: '38px',
-                            height: '38px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderColor: 'var(--accent)',
-                            color: 'var(--accent)',
-                            background: 'transparent',
-                            border: '1px solid var(--accent)',
-                            cursor: 'pointer'
-                          }}
-                          title="Delete Trip"
-                          onMouseOver={e => {
-                            e.currentTarget.style.background = 'var(--accent)';
-                            e.currentTarget.style.color = 'white';
-                          }}
-                          onMouseOut={e => {
-                            e.currentTarget.style.background = 'transparent';
-                            e.currentTarget.style.color = 'var(--accent)';
-                          }}
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
+                      <span style={{ 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: '0.35rem', 
+                        background: 'rgba(0, 78, 137, 0.1)', 
+                        color: 'var(--secondary)', 
+                        padding: '0.5rem 1.25rem', 
+                        borderRadius: 'var(--radius-full)', 
+                        fontSize: '0.85rem',
+                        fontWeight: '700',
+                        width: '100%',
+                        justifyContent: 'center'
+                      }}>
+                        Hosted by you
+                      </span>
                     ) : requestStatus === 'accepted' ? (
                       <span style={{ 
                         display: 'inline-flex', 
