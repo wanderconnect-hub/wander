@@ -1,12 +1,12 @@
 import { useState, useContext, useEffect, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { Search, Send, MoreVertical, Phone, Video, ChevronLeft } from 'lucide-react';
+import { Search, Send, MoreVertical, Phone, Video, ChevronLeft, UserMinus, CheckCircle, Clock } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
 import { supabase } from '../supabase';
 import { getFallbackAvatar } from '../utils/avatars';
 
 export default function Messages() {
-  const { chats, setChats, currentUserEmail, registeredUsers, currentUserId, fetchChatsAndMessages } = useContext(TravelContext);
+  const { chats, setChats, currentUserEmail, registeredUsers, currentUserId, fetchChatsAndMessages, removeConnection } = useContext(TravelContext);
   const messagesEndRef = useRef(null);
   
   // Resolve participant details dynamically based on the active user profile
@@ -60,6 +60,21 @@ export default function Messages() {
   const [activeChat, setActiveChat] = useState(visibleChats[0]?.id || null);
   const [message, setMessage] = useState('');
   const [mobileShowChat, setMobileShowChat] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (msg, type = 'success') => {
+    setToast({ message: msg, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 4000);
+  };
+
+  useEffect(() => {
+    const handleClose = () => setShowOptions(false);
+    window.addEventListener('click', handleClose);
+    return () => window.removeEventListener('click', handleClose);
+  }, []);
 
   // Fetch latest chats and messages from Supabase on mount and poll every 3 seconds for instant updates
   useEffect(() => {
@@ -141,6 +156,28 @@ export default function Messages() {
   if (visibleChats.length === 0) {
     return (
       <div className="animate-fade-in" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+        {toast && (
+          <div 
+            className="toast-banner"
+            style={{
+              position: 'fixed',
+              bottom: '2rem',
+              right: '2rem',
+              background: toast.type === 'success' ? 'var(--success)' : 'var(--accent)',
+              color: 'white',
+              padding: '1rem 2rem',
+              borderRadius: 'var(--radius-md)',
+              boxShadow: 'var(--shadow-lg)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem'
+            }}
+          >
+            {toast.type === 'success' ? <CheckCircle size={20} /> : <Clock size={20} />}
+            <span style={{ fontWeight: '600' }}>{toast.message}</span>
+          </div>
+        )}
         <h3>No conversations yet</h3>
         <p style={{ color: 'var(--text-muted)' }}>Send a join request or connect with buddies to start chatting!</p>
       </div>
@@ -149,6 +186,30 @@ export default function Messages() {
 
   return (
     <div className="animate-fade-in">
+      {/* Visual Toast Notification Banner */}
+      {toast && (
+        <div 
+          className="toast-banner"
+          style={{
+            position: 'fixed',
+            bottom: '2rem',
+            right: '2rem',
+            background: toast.type === 'success' ? 'var(--success)' : 'var(--accent)',
+            color: 'white',
+            padding: '1rem 2rem',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: 'var(--shadow-lg)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
+          }}
+        >
+          {toast.type === 'success' ? <CheckCircle size={20} /> : <Clock size={20} />}
+          <span style={{ fontWeight: '600' }}>{toast.message}</span>
+        </div>
+      )}
+
       <h1 className="page-title" style={{ marginBottom: '2rem' }}>Messages</h1>
       
       <div className="chat-container">
@@ -233,10 +294,79 @@ export default function Messages() {
                 </Link>
               </div>
               
-              <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-muted)' }}>
-                <button style={{ color: 'inherit' }}><Phone size={20} /></button>
-                <button style={{ color: 'inherit' }}><Video size={20} /></button>
-                <button style={{ color: 'inherit' }}><MoreVertical size={20} /></button>
+              <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-muted)', position: 'relative' }}>
+                <button style={{ color: 'inherit', background: 'none', border: 'none', cursor: 'pointer' }}><Phone size={20} /></button>
+                <button style={{ color: 'inherit', background: 'none', border: 'none', cursor: 'pointer' }}><Video size={20} /></button>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowOptions(!showOptions);
+                  }}
+                  style={{ color: 'inherit', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  title="Chat Options"
+                >
+                  <MoreVertical size={20} />
+                </button>
+
+                {showOptions && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    marginTop: '0.5rem',
+                    background: 'var(--card-bg)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-md)',
+                    boxShadow: 'var(--shadow-md)',
+                    padding: '0.5rem',
+                    minWidth: '180px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    zIndex: 20
+                  }}>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        setShowOptions(false);
+                        if (window.confirm(`Are you sure you want to remove ${activeChatData.name} from your connections? This will delete all messages.`)) {
+                          const res = await removeConnection(activeChatData.participantId, activeChatData.id);
+                          if (res.success) {
+                            showToast("Connection removed successfully.");
+                            setActiveChat(null);
+                          } else {
+                            showToast("Failed to remove connection.", "error");
+                          }
+                        }
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--accent)',
+                        padding: '0.6rem 0.8rem',
+                        borderRadius: 'var(--radius-sm)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                        textAlign: 'left',
+                        width: '100%'
+                      }}
+                      onMouseOver={e => {
+                        e.currentTarget.style.background = 'rgba(235, 87, 87, 0.1)';
+                        e.currentTarget.style.color = 'red';
+                      }}
+                      onMouseOut={e => {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = 'var(--accent)';
+                      }}
+                    >
+                      <UserMinus size={16} />
+                      Remove Connection
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 

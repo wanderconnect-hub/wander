@@ -1090,6 +1090,102 @@ export function TravelProvider({ children }) {
     setCurrentUserId('');
   };
 
+  const removeConnection = async (otherParticipantId, chatId) => {
+    try {
+      const isSupabaseUser = typeof otherParticipantId === 'string' && otherParticipantId.includes('-');
+      const isSupabaseChat = typeof chatId === 'string' && chatId.includes('-');
+
+      if (isSupabaseUser) {
+        // Delete buddy connection in Supabase
+        const id1 = currentUserId < otherParticipantId ? currentUserId : otherParticipantId;
+        const id2 = currentUserId < otherParticipantId ? otherParticipantId : currentUserId;
+
+        const { error: buddyErr } = await supabase
+          .from('buddies')
+          .delete()
+          .eq('user_id_1', id1)
+          .eq('user_id_2', id2);
+
+        if (buddyErr) {
+          console.error("Error removing buddy connection in Supabase:", buddyErr);
+        }
+      }
+
+      if (isSupabaseChat) {
+        // Delete chat room in Supabase (which cascades to participants and messages)
+        const { error: chatErr } = await supabase
+          .from('chats')
+          .delete()
+          .eq('id', chatId);
+
+        if (chatErr) {
+          console.error("Error deleting chat in Supabase:", chatErr);
+        }
+      }
+
+      // Update local states immediately
+      if (chatId) {
+        setChats(prev => prev.filter(c => c.id !== chatId));
+      }
+
+      const isEmail = typeof otherParticipantId === 'string' && otherParticipantId.includes('@');
+
+      // Remove from current user's buddies list
+      setBuddies(prev => prev.filter(b => {
+        if (isEmail) {
+          return b.email?.toLowerCase() !== otherParticipantId.toLowerCase();
+        }
+        return b.id !== otherParticipantId;
+      }));
+
+      // Update registeredUsers buddies list
+      setRegisteredUsers(prev => {
+        return prev.map(u => {
+          // Current user
+          const isCurrentUser = (currentUserId && u.id === currentUserId) ||
+            (currentUserEmail && u.email && u.email.toLowerCase() === currentUserEmail.toLowerCase());
+          if (isCurrentUser) {
+            return {
+              ...u,
+              buddies: (u.buddies || []).filter(b => {
+                if (isEmail) {
+                  return b.email?.toLowerCase() !== otherParticipantId.toLowerCase();
+                }
+                return b.id !== otherParticipantId;
+              })
+            };
+          }
+          // Other user
+          const isOtherUser = (u.id === otherParticipantId) ||
+            (u.email && typeof otherParticipantId === 'string' && u.email.toLowerCase() === otherParticipantId.toLowerCase());
+          if (isOtherUser) {
+            return {
+              ...u,
+              buddies: (u.buddies || []).filter(b => {
+                if (currentUserId) {
+                  return b.id !== currentUserId;
+                }
+                return b.email?.toLowerCase() !== currentUserEmail.toLowerCase();
+              })
+            };
+          }
+          return u;
+        });
+      });
+
+      // Force refreshing messages and notifications
+      if (isSupabaseUser) {
+        fetchChatsAndMessages();
+        fetchSupabaseNotifications();
+      }
+
+      return { success: true };
+    } catch (err) {
+      console.error("Exception removing connection:", err);
+      return { error: err };
+    }
+  };
+
   const handleAcceptNotification = async (notif) => {
     // Handle Connect Request Notification Accept
     if (notif.type === 'connect_request') {
@@ -1365,7 +1461,8 @@ export function TravelProvider({ children }) {
       handleAcceptNotification,
       handleDeclineNotification,
       deleteTrip,
-      logout
+      logout,
+      removeConnection
     }}>
       {children}
     </TravelContext.Provider>
