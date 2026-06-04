@@ -353,9 +353,7 @@ export default function Connect() {
       {/* Swipe Suggestions Section */}
       {hasSuggestions ? (
         <>
-          <div style={{ textAlign: 'center', marginBottom: '1.5rem', color: 'var(--text-muted)', fontSize: '0.95rem', fontWeight: '600' }}>
-            Profile {currentIndex + 1} of {suggestions.length}
-          </div>
+
 
           {matchAlert && (
             <div style={{
