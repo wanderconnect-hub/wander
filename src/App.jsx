@@ -14,6 +14,7 @@ import { supabase } from './supabase';
 function NotificationDrawer({ isOpen, onClose }) {
   const { 
     notifications, 
+    setNotifications,
     currentUserEmail, 
     currentUserId, 
     handleAcceptNotification, 

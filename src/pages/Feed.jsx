@@ -198,9 +198,16 @@ export default function Feed() {
     if (!dateStr) return new Date();
     const parts = dateStr.split('-');
     const endPart = parts[parts.length - 1].trim();
-    const yearMatch = endPart.match(/\b\d{4}\b/);
+    const yearMatch = endPart.match(/\b\d{4,}\b/);
     let year = yearMatch ? parseInt(yearMatch[0], 10) : new Date().getFullYear();
-    let cleanDateStr = endPart.replace(/,?\s*\b\d{4}\b/, '').trim();
+    let cleanDateStr = endPart.replace(/,?\s*\b\d{4,}\b/, '').trim();
+    if (/^\d+$/.test(cleanDateStr) && parts.length > 1) {
+      const startPart = parts[0].trim();
+      const monthMatch = startPart.match(/^[a-zA-Z]+/);
+      if (monthMatch) {
+        cleanDateStr = `${monthMatch[0]} ${cleanDateStr}`;
+      }
+    }
     const parsed = new Date(`${cleanDateStr} ${year}`);
     if (!isNaN(parsed.getTime())) {
       parsed.setHours(23, 59, 59, 999);

@@ -153,12 +153,21 @@ export default function Trips() {
     const parts = dateStr.split('-');
     const endPart = parts[parts.length - 1].trim();
     
-    // Check if the end date has a year
-    const yearMatch = endPart.match(/\b\d{4}\b/);
+    // Check if the end date has a year (supporting 4 or 5 digit years)
+    const yearMatch = endPart.match(/\b\d{4,}\b/);
     let year = yearMatch ? parseInt(yearMatch[0], 10) : new Date().getFullYear();
     
     // Remove the year and comma if present to parse month and day
-    let cleanDateStr = endPart.replace(/,?\s*\b\d{4}\b/, '').trim();
+    let cleanDateStr = endPart.replace(/,?\s*\b\d{4,}\b/, '').trim();
+    
+    // If cleanDateStr is just a number (e.g. "25"), extract the month from the start date part
+    if (/^\d+$/.test(cleanDateStr) && parts.length > 1) {
+      const startPart = parts[0].trim();
+      const monthMatch = startPart.match(/^[a-zA-Z]+/);
+      if (monthMatch) {
+        cleanDateStr = `${monthMatch[0]} ${cleanDateStr}`;
+      }
+    }
     
     const parsed = new Date(`${cleanDateStr} ${year}`);
     if (!isNaN(parsed.getTime())) {

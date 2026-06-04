@@ -239,6 +239,34 @@ export function TravelProvider({ children }) {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Joint Requests & Notifications State
+  const [notifications, setNotifications] = useState(() => {
+    const saved = localStorage.getItem('wc_notifications');
+    return saved ? JSON.parse(saved) : [
+      {
+        id: "notif-1",
+        type: "join_request",
+        receiverEmail: "alex@wanderconnect.com", // Addressed to Alex Chen
+        sender: {
+          id: 103,
+          name: "Neha Patel",
+          email: "neha@wanderconnect.com",
+          avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&w=150&q=80",
+          location: "Ahmedabad",
+          style: "Foodie & Culture"
+        },
+        trip: {
+          id: 4,
+          destination: "Varkala Beach, Kerala",
+          hostEmail: "alex@wanderconnect.com"
+        },
+        status: "pending", // pending, accepted, declined
+        timestamp: "2 hours ago",
+        read: false
+      }
+    ];
+  });
+
   const fetchTripsAndProfiles = useCallback(async (silent = false) => {
     try {
       if (!silent) setLoading(true);
@@ -589,33 +617,7 @@ export function TravelProvider({ children }) {
     });
   }, [registeredUsers]);
 
-  // Joint Requests & Notifications State
-  const [notifications, setNotifications] = useState(() => {
-    const saved = localStorage.getItem('wc_notifications');
-    return saved ? JSON.parse(saved) : [
-      {
-        id: "notif-1",
-        type: "join_request",
-        receiverEmail: "alex@wanderconnect.com", // Addressed to Alex Chen
-        sender: {
-          id: 103,
-          name: "Neha Patel",
-          email: "neha@wanderconnect.com",
-          avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&w=150&q=80",
-          location: "Ahmedabad",
-          style: "Foodie & Culture"
-        },
-        trip: {
-          id: 4,
-          destination: "Varkala Beach, Kerala",
-          hostEmail: "alex@wanderconnect.com"
-        },
-        status: "pending", // pending, accepted, declined
-        timestamp: "2 hours ago",
-        read: false
-      }
-    ];
-  });
+
 
   useEffect(() => {
     try {
