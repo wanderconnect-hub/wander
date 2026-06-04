@@ -1,6 +1,6 @@
 import { useState, useContext, useEffect, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { Search, Send, MoreVertical, Phone, Video, ChevronLeft, UserMinus, CheckCircle, Clock } from 'lucide-react';
+import { Search, Send, MoreVertical, ChevronLeft, UserMinus, CheckCircle, Clock } from 'lucide-react';
 import { TravelContext } from '../context.jsx';
 import { supabase } from '../supabase';
 import { getFallbackAvatar } from '../utils/avatars';
@@ -315,8 +315,7 @@ export default function Messages() {
               </div>
               
               <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-muted)', position: 'relative' }}>
-                <button style={{ color: 'inherit', background: 'none', border: 'none', cursor: 'pointer' }}><Phone size={20} /></button>
-                <button style={{ color: 'inherit', background: 'none', border: 'none', cursor: 'pointer' }}><Video size={20} /></button>
+
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
